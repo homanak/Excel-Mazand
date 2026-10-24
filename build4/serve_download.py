@@ -12,10 +12,11 @@ except the single zip archive.
 """
 import argparse
 import html
+import json
 import mimetypes
 import os
+import re
 import shutil
-import socketserver
 import sys
 import urllib.parse
 import zipfile
@@ -154,6 +155,15 @@ def size_of(path):
         return 0
 
 
+def newest_source():
+    latest = 0.0
+    for name in os.listdir(SRC) if os.path.isdir(SRC) else []:
+        p = os.path.join(SRC, name)
+        if os.path.isfile(p) and not name.startswith("~$"):
+            latest = max(latest, os.path.getmtime(p))
+    return latest
+
+
 def build_zip():
     os.makedirs(OUT, exist_ok=True)
     tmp = ZIP + ".part"
@@ -188,68 +198,125 @@ def build_page():
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "Mazandasht/1.0"
+    server_version = "Mazandasht/1.1"
+    protocol_version = "HTTP/1.1"
+    allowed = {f[0] for f in FILES} | {"README.md"}
 
     def log_message(self, fmt, *args):        # keep the log tail readable
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
-    def _send_file(self, path, download_name=None, ctype=None):
-        if not os.path.isfile(path):
-            self.send_error(404, "Not found")
-            return
-        size = os.path.getsize(path)
-        ctype = ctype or mimetypes.guess_type(path)[0] or "application/octet-stream"
-        self.send_response(200)
-        self.send_header("Content-Type", ctype + ("; charset=utf-8" if ctype.startswith("text/")
-                                                  or ctype.endswith("json") else ""))
-        self.send_header("Content-Length", str(size))
+    # -------------------------------------------------------------- helpers
+    def _common_headers(self):
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Access-Control-Allow-Origin", "*")
+
+    def _send_bytes(self, data, ctype, download_name=None, status=200):
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self._common_headers()
         if download_name:
             self.send_header("Content-Disposition",
                              f'attachment; filename="{download_name}"')
-        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
-        with open(path, "rb") as fh:
-            shutil.copyfileobj(fh, self.wfile)
+        if self.command != "HEAD":
+            self.wfile.write(data)
 
-    def do_HEAD(self):
-        self.do_GET(head=True)
+    def _send_file(self, path, download_name=None, ctype=None):
+        """Streams a file, honouring a single `Range: bytes=a-b` request."""
+        if not os.path.isfile(path):
+            return self.send_error(404, "Not found")
+        size = os.path.getsize(path)
+        ctype = ctype or mimetypes.guess_type(path)[0] or "application/octet-stream"
+        if ctype.startswith("text/") or ctype in ("application/json", "application/javascript"):
+            ctype += "; charset=utf-8"
 
-    def do_GET(self, head=False):
-        path = urllib.parse.unquote(urllib.parse.urlparse(self.path).path)
-        if path in ("/", "/index.html", ""):
-            if head:
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.end_headers()
-                return
-            return self._send_file(os.path.join(OUT, "index.html"), ctype="text/html")
-        if path == "/favicon.ico":
-            self.send_error(204)
+        start, end, partial = 0, size - 1, False
+        rng = self.headers.get("Range") or ""
+        if rng.startswith("bytes=") and size:
+            m = re.match(r"bytes=(\d*)-(\d*)", rng)
+            if m and (m.group(1) or m.group(2)):
+                if m.group(1):
+                    start = int(m.group(1))
+                    end = int(m.group(2)) if m.group(2) else size - 1
+                else:                              # suffix range: last N bytes
+                    start = max(0, size - int(m.group(2)))
+                    end = size - 1
+                if start >= size or start > end:
+                    self.send_response(416)
+                    self.send_header("Content-Range", f"bytes */{size}")
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+                end = min(end, size - 1)
+                partial = True
+
+        length = end - start + 1
+        self.send_response(206 if partial else 200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(length))
+        self.send_header("Accept-Ranges", "bytes")
+        if partial:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self._common_headers()
+        if download_name:
+            self.send_header("Content-Disposition",
+                             f'attachment; filename="{download_name}"')
+        self.end_headers()
+        if self.command == "HEAD":
             return
-        if path == "/" + ZIP_NAME or path == "/zip":
-            if head:
-                self.send_response(200)
-                self.send_header("Content-Type", "application/zip")
-                self.send_header("Content-Length", str(size_of(ZIP)))
-                self.end_headers()
-                return
-            return self._send_file(ZIP, ZIP_NAME, "application/zip")
-        if path.startswith("/f/"):
-            name = os.path.basename(path[3:])
-            if name not in {f[0] for f in FILES} | {"README.md"}:
-                self.send_error(403, "File not allowed")
-                return
-            src = os.path.join(SRC, name)
-            if head:
-                self.send_response(200)
-                self.send_header("Content-Length", str(size_of(src)))
-                self.end_headers()
-                return
-            ctype = ("text/markdown" if name.endswith(".md")
-                     else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            return self._send_file(src, name, ctype)
-        self.send_error(404, "Not found")
+        with open(path, "rb") as fh:
+            fh.seek(start)
+            left = length
+            while left > 0:
+                chunk = fh.read(min(256 * 1024, left))
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                left -= len(chunk)
+
+    def _json(self, payload, status=200):
+        self._send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                         "application/json", status=status)
+
+    # ---------------------------------------------------------------- routes
+    def do_HEAD(self):
+        self.route()
+
+    def do_GET(self):
+        self.route()
+
+    def route(self):
+        path = urllib.parse.unquote(urllib.parse.urlparse(self.path).path)
+        try:
+            if path in ("/", "/index.html", ""):
+                return self._send_file(os.path.join(OUT, "index.html"), ctype="text/html")
+            if path == "/health":
+                return self._json({
+                    "ok": True,
+                    "files": len(os.listdir(SRC)) if os.path.isdir(SRC) else 0,
+                    "zip_bytes": size_of(ZIP),
+                    "files_list": sorted(
+                        n for n in (os.listdir(SRC) if os.path.isdir(SRC) else [])
+                        if n.endswith(".xlsx")),
+                })
+            if path in ("/" + ZIP_NAME, "/zip"):
+                return self._send_file(ZIP, ZIP_NAME, "application/zip")
+            if path.startswith("/f/"):
+                name = os.path.basename(path[3:])
+                if name not in self.allowed:
+                    return self.send_error(403, "File not allowed")
+                src = os.path.join(SRC, name)
+                ctype = ("text/markdown; charset=utf-8" if name.endswith(".md")
+                         else "application/vnd.openxmlformats-officedocument."
+                              "spreadsheetml.sheet")
+                return self._send_file(src, name, ctype)
+            if path == "/favicon.ico":
+                return self._send_bytes(b"", "image/x-icon", status=204)
+            self.send_error(404, "Not found")
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
 
 class Server(ThreadingHTTPServer):
@@ -263,12 +330,17 @@ def main():
     ap.add_argument("--build", action="store_true", help="rebuild the zip and the page")
     args = ap.parse_args()
 
-    if args.build or not os.path.exists(ZIP):
+    if not os.path.isdir(SRC):
+        sys.exit(f"missing delivery folder: {SRC}")
+
+    stale = (not os.path.exists(ZIP)) or os.path.getmtime(ZIP) < newest_source()
+    if args.build or stale:
         print("zip  →", build_zip(), human(size_of(ZIP)))
     print("page →", build_page())
 
     srv = Server(("0.0.0.0", args.port), Handler)
-    print(f"serving {OUT} on http://0.0.0.0:{args.port}/  ({human(size_of(ZIP))} zip)")
+    print(f"serving {OUT} on http://0.0.0.0:{args.port}/  "
+          f"({human(size_of(ZIP))} zip, {len(FILES)} single files)", flush=True)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
