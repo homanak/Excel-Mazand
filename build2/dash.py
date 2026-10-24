@@ -160,7 +160,7 @@ def sheet_f1(wb, k, values):
 def sheet_f2(wb, k, values):
     ws = wb.add_worksheet("F2")
     ws.hide()
-    k.setup(ws, 11, 292, landscape=True)
+    k.setup(ws, 11, 9 + POST_ROWS, landscape=True)
     for i, h in enumerate(["تاریخ", "سند", "منبع", "حساب", "نام", "گروه", "عملیات",
                            "بانک", "بدهکار", "بستانکار", "ماه", "شرح"]):
         ws.write(8, i, h, k.f(font_name=FA, font_size=8, bold=True, font_color=WHITE,

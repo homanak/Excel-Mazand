@@ -209,6 +209,20 @@ def bank_structure():
     pay = wb["Payable"]
     print(f"   Txn filled rows: {rows}   Post dims: {post.dimensions}   "
           f"Payable: {pay.dimensions}")
+    if txn.max_row < 5000:
+        bad(f"Txn capacity only {txn.max_row} rows")
+    if post.max_row < 10000:
+        bad(f"Post rows only {post.max_row}")
+    import zipfile as _zf
+    with _zf.ZipFile(p) as z:
+        rel = {}
+        for n in z.namelist():
+            if n.startswith("xl/worksheets/sheet"):
+                t = z.read(n).decode()
+                s_ = re.findall(r'<dataValidation [^>]*sqref="([^"]+)"', t)
+                rel[n] = s_
+    bank_dv = [x for v in rel.values() for x in v if "B5012" in x or "B5000" in x]
+    print("   Txn dropdowns reach row 5012:", bool(bank_dv))
     people = 0
     for r in range(13, 60):
         code = pay.cell(r, 2).value

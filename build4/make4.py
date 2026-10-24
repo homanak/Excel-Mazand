@@ -158,6 +158,8 @@ def main(tiny=False):
     else:
         dash.BOOK_ROWS = grow.BOOK_LAST - 9
         dash.F1_LAST = 9 + dash.BOOK_ROWS
+    dash.POST_ROWS = 2 * bank2.NR
+    dash.F2_LAST = 9 + dash.POST_ROWS
 
     os.makedirs(OUT, exist_ok=True)
     kit.ICONS = kit.make_icons()

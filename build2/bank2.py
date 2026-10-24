@@ -14,8 +14,9 @@ from kit import (Kit, FOREST, FOREST_2, FOREST_3, SAGE, SAGE_L, MINT, CREAM, SAN
                  FA, FA_TITLE, EN, INT, INT_RED, DEC, PCT, COMPANY, COMPANY_EN)
 
 FILE = "02_Bank.xlsx"
-NR = 140          # transaction rows  (12..151)
-PN = NR * 2       # journal lines      (12..291)
+NR = 5000         # transaction rows  (12 .. 12+NR-1)
+PN = NR * 2       # journal lines     (2 per transaction)
+NCHQ = 300        # cheque rows
 
 BANK_OPS = [
     # title, direction, party mode, fixed party, note
@@ -412,7 +413,7 @@ def sheet_txn(wb, k):
 def sheet_post(wb, k):
     ws = wb.add_worksheet("Post")
     ws.hide()
-    k.setup(ws, 13, 292, landscape=True, freeze=(12, 1))
+    k.setup(ws, 13, 12 + PN, landscape=True, freeze=(12, 1))
     cols = ["تاریخ", "سند", "منبع", "کد حساب", "نام حساب", "گروه", "عملیات", "بانک",
             "بدهکار", "بستانکار", "ماه", "شرح", "", "بانک؟"]
     for i, h in enumerate(cols):
@@ -913,15 +914,15 @@ def sheet_card(wb, k, banks):
 def sheet_chq(wb, k):
     ws = wb.add_worksheet("Chq")
     last = 11
-    k.setup(ws, last, 12 + 60 + 3, landscape=True, repeat=(11, 11), freeze=(12, 2))
+    k.setup(ws, last, 12 + NCHQ + 3, landscape=True, repeat=(11, 11), freeze=(12, 2))
     k.brand(ws, last, "دفتر چک‌ها",
             "چک‌های دریافتی و پرداختی  ·  سررسید، وضعیت و مبلغ در یک نگاه", icon="cheque")
     k.kpis(ws, 6, [
-        ("تعداد چک", "=COUNTA($C$13:$C$72)", INT, FOREST, "cheque"),
-        ("در جریان", '=SUMIFS($I$13:$I$72,$J$13:$J$72,"در جریان")', INT, GOLD, "calendar"),
-        ("پاس شده", '=SUMIFS($I$13:$I$72,$J$13:$J$72,"پاس شده")', INT, GREEN, "check"),
-        ("برگشتی", '=SUMIFS($I$13:$I$72,$J$13:$J$72,"برگشتی")', INT, RED, "warn"),
-        ("جمع کل", "=SUM($I$13:$I$72)", INT, BLUE, "money"),
+        ("تعداد چک", f"=COUNTA($C$13:$C${12+NCHQ})", INT, FOREST, "cheque"),
+        ("در جریان", f'=SUMIFS($I$13:$I${12+NCHQ},$J$13:$J${12+NCHQ},"در جریان")', INT, GOLD, "calendar"),
+        ("پاس شده", f'=SUMIFS($I$13:$I${12+NCHQ},$J$13:$J${12+NCHQ},"پاس شده")', INT, GREEN, "check"),
+        ("برگشتی", f'=SUMIFS($I$13:$I${12+NCHQ},$J$13:$J${12+NCHQ},"برگشتی")', INT, RED, "warn"),
+        ("جمع کل", f"=SUM($I$13:$I${12+NCHQ})", INT, BLUE, "money"),
     ], last)
     heads = [("ردیف", "No.", 6), ("تاریخ صدور", "Issued", 12), ("سررسید", "Due", 12),
              ("شماره چک", "No.", 12), ("نوع", "Type", 11), ("کد طرف", "Party", 11),
@@ -934,7 +935,7 @@ def sheet_chq(wb, k):
                  border_color=GOLD_L, align="right", valign="vcenter")
     f_auto = k.f(font_name=FA, font_size=9, bg_color="#F6F5F0", border=1,
                  border_color=LINE_SOFT, align="right", valign="vcenter")
-    for i in range(60):
+    for i in range(NCHQ):
         r = 12 + i
         x = r + 1
         ws.set_row(r, 21)
@@ -969,23 +970,23 @@ def sheet_chq(wb, k):
             ws.write_string(r, 10, cleared, f_in)
         if note:
             ws.write_string(r, 11, note, f_in_t)
-    ws.data_validation(12, 4, 71, 4, {"validate": "list", "source": "=ListChequeTypes",
+    ws.data_validation(12, 4, 12 + NCHQ - 1, 4, {"validate": "list", "source": "=ListChequeTypes",
                                      "error_type": "stop"})
-    ws.data_validation(12, 7, 71, 7, {"validate": "list", "source": "=ListBanks",
+    ws.data_validation(12, 7, 12 + NCHQ - 1, 7, {"validate": "list", "source": "=ListBanks",
                                       "error_type": "warning"})
-    ws.data_validation(12, 9, 71, 9, {"validate": "list", "source": "=ListChequeStatus"})
-    ws.data_validation(12, 5, 71, 5, {"validate": "list", "source": "=ListAllCodes",
+    ws.data_validation(12, 9, 12 + NCHQ - 1, 9, {"validate": "list", "source": "=ListChequeStatus"})
+    ws.data_validation(12, 5, 12 + NCHQ - 1, 5, {"validate": "list", "source": "=ListAllCodes",
                                       "error_type": "warning"})
-    ws.conditional_format(12, 9, 71, 9, {
+    ws.conditional_format(12, 9, 12 + NCHQ - 1, 9, {
         "type": "text", "criteria": "containing", "value": "پاس",
         "format": k.f(bg_color=MINT, font_color=GREEN, bold=True)})
-    ws.conditional_format(12, 9, 71, 9, {
+    ws.conditional_format(12, 9, 12 + NCHQ - 1, 9, {
         "type": "text", "criteria": "containing", "value": "برگشتی",
         "format": k.f(bg_color="#FBE3D8", font_color=TERRA, bold=True)})
-    ws.conditional_format(12, 9, 71, 9, {
+    ws.conditional_format(12, 9, 12 + NCHQ - 1, 9, {
         "type": "text", "criteria": "containing", "value": "در جریان",
         "format": k.f(bg_color=SAND, font_color=GOLD, bold=True)})
-    ws.autofilter(11, 0, 71, 11)
+    ws.autofilter(11, 0, 12 + NCHQ - 1, 11)
     return ws
 
 
@@ -997,9 +998,9 @@ def sheet_home(wb, k, acc, banks):
     k.brand(ws, last, "فایل تراکنش‌های بانکی",
             "ثبت، کنترل و تحلیل گردش حساب‌های شرکت  ·  همه کشوها از فایل مادر تعریف شده‌اند", icon="bank")
     k.kpis(ws, 6, [
-        ("تراکنش‌ها", "=COUNTA(Txn!$B$13:$B$152)", INT, FOREST, "list"),
-        ("دریافت", "=SUM(Txn!$O$13:$O$152)", INT, GREEN, "transfer"),
-        ("پرداخت", "=SUM(Txn!$P$13:$P$152)", INT, RED, "transfer"),
+        ("تراکنش‌ها", f"=COUNTA(Txn!$B$13:$B${12+NR})", INT, FOREST, "list"),
+        ("دریافت", f"=SUM(Txn!$O$13:$O${12+NR})", INT, GREEN, "transfer"),
+        ("پرداخت", f"=SUM(Txn!$P$13:$P${12+NR})", INT, RED, "transfer"),
         ("مانده بانک‌ها", "=SUM(Sum!$E$12:$E$21)", INT, BLUE, "bank"),
     ], last)
     k.section(ws, 8, last, "۰۱", "شیت‌های این فایل", "روی هر کارت کلیک کنید")
