@@ -168,6 +168,11 @@ def book_structure():
     wb.close()
 
     wb = openpyxl.load_workbook(os.path.join(OUT, "01_Entry.xlsx"), data_only=False)
+    for sheet, want in (("Scale", "T10009"), ("Crate", "M2509"), ("Pay", "R2509"),
+                        ("Book", "Q50010")):
+        area = str(wb[sheet].print_area or "").replace("$", "")
+        if want not in area:
+            bad(f"{sheet} print area {area} does not reach {want}")
     for sheet in ("Inv", "Print", "GRep"):
         ws = wb[sheet]
         print(f"   {sheet}: dims {ws.dimensions}  print {ws.print_area}  "

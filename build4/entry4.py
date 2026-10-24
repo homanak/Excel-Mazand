@@ -449,6 +449,10 @@ def build(path, groups=None):
     add_grep(wb, groups, book_last=grow.BOOK_LAST)
     help_rows = extend_help(wb)
     home_links(wb)
+    # print areas must follow the new capacities (the v03 files stopped at 309/159)
+    wb["Scale"].print_area = f"A1:T{grow.SCALE_LAST}"
+    wb["Crate"].print_area = f"A1:M{grow.CRATE_LAST}"
+    wb["Pay"].print_area = f"A1:R{grow.PAY_LAST}"
     for ws in wb.worksheets:                 # POS is built by openpyxl: A4 centering
         ws.print_options.horizontalCentered = True
 
