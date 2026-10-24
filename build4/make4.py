@@ -213,6 +213,9 @@ def main(tiny=False):
     shutil.move(tmp, os.path.join(OUT, "08_Dash.xlsx"))
     print("  -> 08_Dash.xlsx", os.path.getsize(os.path.join(OUT, "08_Dash.xlsx")) // 1024,
           "KB")
+    readme = os.path.join(HERE, "README_v04.md")
+    if os.path.exists(readme):
+        shutil.copy2(readme, os.path.join(OUT, "README.md"))
     print("done →", OUT)
 
 
