@@ -10,3 +10,6 @@ build2/*.tmp
 
 # generated download bundle
 download_v04/
+
+# local build venv
+.venv/
