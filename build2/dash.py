@@ -35,6 +35,94 @@ TEXT_COLS_F2 = {0, 1, 2, 3, 4, 5, 6, 7, 11}
 
 
 # ---------------------------------------------------------------- feed sheets
+
+# ====================================================================== Prod
+def sheet_prod(wb, k, values):
+    """Products: weight, money and share — built from the journal feed."""
+    ws = wb.add_worksheet("Prod")
+    prods = {}
+    for (col, ref), v in (values or {}).items():
+        if col != "F" or not isinstance(v, str) or not v.strip():
+            continue
+        row = int("".join(ch for ch in ref if ch.isdigit()))
+        amount = float(values.get(("K", f"K{row}")) or 0)
+        weight = float(values.get(("H", f"H{row}")) or 0)
+        cur = prods.setdefault(v.strip(), [0.0, 0.0, 0])
+        cur[0] += amount
+        cur[1] += weight
+        cur[2] += 1
+    top = sorted(prods.items(), key=lambda kv: -kv[1][0])[:12] or [("—", [0, 0, 0])]
+    n = len(top)
+    last = 6
+    k.setup(ws, last, 12 + n + 8, landscape=True, repeat=(11, 11), freeze=(13, 2))
+    k.brand(ws, last, "تحلیل محصول",
+            "وزن، مبلغ و سهم هر محصول  ·  از دفتر ثبت روزانه", icon="crate")
+    k.kpis(ws, 6, [
+        ("تعداد محصول", f"=COUNTA($A$13:$A${12+n})", INT, FOREST, "list"),
+        ("جمع وزن (kg)", f"=SUM($C$13:$C${12+n})", INT, GREEN, "scale"),
+        ("جمع مبلغ", f"=SUM($D$13:$D${12+n})", INT, GOLD, "money"),
+        ("میانگین فی", f"=IFERROR($D$8/$C$8,0)", INT, TERRA, "gauge"),
+    ], last)
+    heads = [("محصول", "Product", 22), ("سطر", "Lines", 8), ("وزن (kg)", "Weight", 15),
+             ("مبلغ", "Amount", 18), ("فی میانگین", "Avg price", 13),
+             ("سهم مبلغ", "Share", 10), ("نمای نسبی", "Visual", 24)]
+    for i, (fa, en, w) in enumerate(heads):
+        ws.set_column(i, i, w)
+        ws.write(11, i, fa, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
+                                bg_color=FOREST, border=1, border_color=FOREST,
+                                align="center", valign="vcenter"))
+    ws.set_row(11, 28)
+    for i, (name, (amount, weight, lines)) in enumerate(top):
+        r = 12 + i
+        ws.set_row(r, 20)
+        ws.write_string(r, 0, name, k.f(font_name=FA, font_size=9, bold=True,
+                                        font_color=FOREST, bg_color=SAND_2, border=1,
+                                        border_color=LINE, align="right"))
+        ws.write_formula(r, 1, f'=COUNTIF(F1!$F${F1_FIRST}:$F${F1_LAST},$A{r+1})',
+                         k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=INT))
+        ws.write_formula(r, 2, f'=SUMIF(F1!$F${F1_FIRST}:$F${F1_LAST},$A{r+1},'
+                               f'F1!$H${F1_FIRST}:$H${F1_LAST})',
+                         k.f(font_name=EN, font_size=9, bg_color=MINT, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=INT))
+        ws.write_formula(r, 3, f'=SUMIF(F1!$F${F1_FIRST}:$F${F1_LAST},$A{r+1},'
+                               f'F1!$K${F1_FIRST}:$K${F1_LAST})',
+                         k.f(font_name=EN, font_size=9, bold=True, bg_color=GOLD_L, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=INT))
+        ws.write_formula(r, 4, f'=IFERROR($D{r+1}/$C{r+1},0)',
+                         k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=INT))
+        ws.write_formula(r, 5, f'=IFERROR($D{r+1}/SUM($D$13:$D${12+n}),0)',
+                         k.f(font_name=EN, font_size=8.5, bg_color=WHITE, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=PCT))
+        ws.write_formula(r, 6, f'=REPT("█",ROUND(IF(MAX($D$13:$D${12+n})=0,0,'
+                               f'$D{r+1}/MAX($D$13:$D${12+n})*18),0))',
+                         k.f(font_name=EN, font_size=9, font_color=SAGE, bg_color=WHITE,
+                             border=1, border_color=LINE_SOFT, align="right"))
+    tot = 12 + n
+    ws.merge_range(tot, 0, tot, 1, "جمع", k.f(font_name=FA, font_size=10, bold=True,
+                                              font_color=WHITE, bg_color=GOLD, border=1))
+    for c in (2, 3):
+        ws.write_formula(tot, c, f"=SUM({chr(65+c)}13:{chr(65+c)}{tot})",
+                         k.f(font_name=EN, font_size=10, bold=True, font_color=WHITE,
+                             bg_color=GOLD, border=1, num_format=INT))
+    ch = wb.add_chart({"type": "column"})
+    ch.add_series({"name": "مبلغ", "categories": ["Prod", 12, 0, 11 + n, 0],
+                   "values": ["Prod", 12, 3, 11 + n, 3], "fill": {"color": GOLD},
+                   "gap": 45, "data_labels": {"value": True, "num_format": "#,##0",
+                                              "font": {"size": 6.5}}})
+    ch.set_title({"name": "مبلغ فروش/خرید هر محصول", "name_font": {"name": FA, "size": 11}})
+    ch.set_legend({"none": True})
+    ch.set_plotarea({"fill": {"color": "#FCFAF4"}})
+    ch.set_size({"width": 560, "height": 250})
+    ws.insert_chart(f"A{tot+3}", ch, {"x_offset": 8, "y_offset": 6})
+    k.note(ws, tot + 20, last,
+           "این شیت از ستون «محصول» دفتر روزنامه ساخته می‌شود؛ هر محصولی که در فایل مادر تعریف شده و "
+           "در ثبت روزانه استفاده شده، خودکار اینجا می‌آید.", bg=SAND, icon="crate")
+    ws.print_area(0, 0, tot + 21, last)
+    return ws
+
+
 def sheet_f1(wb, k, values):
     ws = wb.add_worksheet("F1")
     ws.hide()
@@ -529,6 +617,23 @@ def sheet_dash(wb, k):
         ("طرف حساب‌ها  Parties", "باغدار، بارفروش و باسکول دیگران", "internal:Parties!A1", "people", TERRA),
         ("راهنما  Help", "راهنمای کامل داشبورد و اتصال‌ها", "internal:Help!A1", "help", "#8E6C88"),
     ], last, per_row=3)
+
+    k.section(ws, 52, last, "۰۶", "فایل‌های همراه",
+              "همه در همین پوشه — داشبورد از دو فایل اول داده می‌خواند")
+    k.nav(ws, 53, [
+        ("دفتر ثبت  01_Entry", "منبع اصلی داشبورد: شیت Book همین فایل است",
+         "external:01_Entry.xlsx", "list", FOREST),
+        ("بانک  02_Bank", "منبع شیت Banks و پز؛ شیت Post",
+         "external:02_Bank.xlsx", "bank", GOLD),
+        ("فایل مادر  00_Master", "حساب‌ها، بانک‌ها و فهرست‌های کشویی",
+         "external:00_Master.xlsx", "list", SAGE),
+        ("تراز  05_Bal", "تراز آزمایشی و گردش حساب‌ها",
+         "external:05_Bal.xlsx", "scale", BLUE),
+        ("فاکتورها  04_Inv", "دفتر فاکتورهای فروش و خرید",
+         "external:04_Inv.xlsx", "cheque", TERRA),
+        ("گزارش‌ها  03_Report", "سود و زیان، گردش حساب و عملکرد",
+         "external:03_Report.xlsx", "gauge", "#8E6C88"),
+    ], last, per_row=3)
     return ws
 
 
@@ -637,6 +742,7 @@ def build(master_path, bank_path, entry_path, out_path, feed_values=None):
     sheet_time(wb, k)
     sheet_ops(wb, k, vals.get("ops") or [])
     sheet_parties(wb, k, growers, buyers, bd)
+    sheet_prod(wb, k, vals.get("F1") or {})
     sheet_f1(wb, k, vals.get("F1") or {})
     sheet_f2(wb, k, vals.get("F2") or {})
     sheet_sync(wb, k, banks, growers, buyers, bd, groups)

@@ -753,6 +753,92 @@ def sheet_anal(wb, k):
     return ws
 
 
+
+# ===================================================================  Payable
+def sheet_payable(wb, k, bd):
+    """بدهی/طلب هر شخص «باسکول دیگران» و ردیابی آن از دفتر بانک."""
+    ws = wb.add_worksheet("Payable")
+    n = max(len(bd), 1)
+    last = 6
+    end = 12 + n + 12
+    k.setup(ws, last, end, landscape=False, repeat=(11, 11), freeze=(13, 3))
+    k.brand(ws, last, "بدهی و طلب «باسکول دیگران»",
+            "مانده هر شخص از دفتر تراکنش‌های بانکی  ·  دریافت و پرداخت  ·  گزارش قابل چاپ",
+            icon="people")
+    k.kpis(ws, 6, [
+        ("جمع بستانکار (بدهی ایجادشده)", "=SUM($D$13:$D$%d)" % (12 + n), INT, TERRA, "money"),
+        ("جمع بدهکار (تسویه‌شده)", "=SUM($C$13:$C$%d)" % (12 + n), INT, GREEN, "money"),
+        ("مانده بدهی ما", "=SUM($D$13:$D$%d)-SUM($C$13:$C$%d)" % (12 + n, 12 + n), INT, FOREST, "gauge"),
+        ("اشخاص دارای مانده", '=COUNTIF($E$13:$E$%d,"<>0")' % (12 + n), INT, GOLD, "people"),
+    ], last)
+    k.section(ws, 9, 5, "۰۱", "بدهی و طلب به تفکیک شخص",
+              "مانده = بستانکار − بدهکار  ·  ردیابی از دفتر بانک")
+    heads = [("شخص / باسکول دیگران", "Person", 30), ("کد", "Code", 9),
+             ("بدهکار (تسویه‌شده)", "Debit", 17), ("بستانکار (بدهی ایجادشده)", "Credit", 18),
+             ("مانده بدهی ما", "Balance", 17), ("وضعیت", "Status", 20)]
+    for i, (fa, en, w) in enumerate(heads):
+        ws.set_column(i, i, w)
+        ws.write(11, i, fa, k.f(font_name=FA, font_size=9.5, bold=True, font_color=WHITE,
+                                bg_color=FOREST, border=1, border_color=FOREST,
+                                align="center", valign="vcenter"))
+    ws.set_row(11, 30)
+    for i, person in enumerate(bd):
+        r = 12 + i
+        code = person[0]
+        name = person[2] if len(person) > 2 else person[0]
+        ws.set_row(r, 20)
+        ws.write_formula(r, 0, f"=IFERROR(VLOOKUP($B{r+1},AcctTbl,2,0),$B{r+1})",
+                         k.f(font_name=FA, font_size=9.5, bold=True, font_color=FOREST,
+                             bg_color=SAND_2, border=1, border_color=LINE, align="right"),
+                         name)
+        ws.write_string(r, 1, code, k.f(font_name=EN, font_size=8.5, bg_color=SAND_2,
+                                        border=1, border_color=LINE, align="center"))
+        ws.write_formula(r, 2,
+                         f'=SUMIF(Post!$D$13:$D${12+PN},$B{r+1},Post!$I$13:$I${12+PN})',
+                         k.f(font_name=EN, font_size=9, bg_color=MINT, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=INT))
+        ws.write_formula(r, 3,
+                         f'=SUMIF(Post!$D$13:$D${12+PN},$B{r+1},Post!$J$13:$J${12+PN})',
+                         k.f(font_name=EN, font_size=9, bg_color=BLUSH, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=INT))
+        ws.write_formula(r, 4, f"=$D{r+1}-$C{r+1}",
+                         k.f(font_name=EN, font_size=10, bold=True, bg_color=CREAM, border=1,
+                             border_color=LINE_SOFT, align="center", num_format=INT_RED))
+        ws.write_formula(r, 5,
+                         f'=IF(ROUND($E{r+1},0)=0,"✓ تسویه‌شده",IF($E{r+1}>0,"بستانکار — بدهی ما","بدهکار — طلب ما"))',
+                         k.f(font_name=FA, font_size=8.5, bg_color=WHITE, border=1,
+                             border_color=LINE_SOFT, align="center"))
+    tot = 12 + n
+    ws.merge_range(tot, 0, tot, 1, "جمع", k.f(font_name=FA, font_size=10, bold=True,
+                                              font_color=WHITE, bg_color=GOLD, border=1))
+    for c in (2, 3, 4):
+        ws.write_formula(tot, c, f"=SUM({chr(65+c)}13:{chr(65+c)}{tot})",
+                         k.f(font_name=EN, font_size=10, bold=True, font_color=WHITE,
+                             bg_color=GOLD, border=1, num_format=INT_RED))
+    ws.write_formula(tot, 5, f'=IF(ROUND($E{tot+1},0)=0,"✓ جمع صفر","جمع بدهی ما")',
+                     k.f(font_name=FA, font_size=9.5, bold=True, font_color=WHITE,
+                         bg_color=GOLD, border=1))
+
+    ch = wb.add_chart({"type": "bar"})
+    ch.add_series({"name": "مانده", "categories": ["Payable", 12, 0, 11 + n, 0],
+                   "values": ["Payable", 12, 4, 11 + n, 4],
+                   "fill": {"color": TERRA}, "gap": 40,
+                   "data_labels": {"value": True, "num_format": "#,##0",
+                                   "font": {"size": 7}}})
+    ch.set_title({"name": "مانده هر شخص باسکول دیگران",
+                  "name_font": {"name": FA, "size": 11}})
+    ch.set_legend({"none": True})
+    ch.set_plotarea({"fill": {"color": "#FCFAF4"}})
+    ch.set_size({"width": 460, "height": max(240, 26 * n)})
+    ws.insert_chart("H12", ch, {"x_offset": 8, "y_offset": 6})
+
+    k.note(ws, tot + 2, 6,
+           "هر «دریافت هزینه باسکول دیگران» این شخص را بستانکار (بدهی شرکت) و هر «پرداخت به باسکول دیگران» "
+           "او را بدهکار می‌کند. برای افزودن شخص جدید: 00_Master ← شیت Acc ← یک کد BD خالی را پر کنید؛ "
+           "همان لحظه در کشوی فایل بانک می‌آید و همین گزارش آن را نشان می‌دهد.", bg=SAND, icon="people")
+    return ws
+
+
 # =====================================================================  Card
 def sheet_card(wb, k, banks):
     ws = wb.add_worksheet("Card")
@@ -940,7 +1026,6 @@ def sheet_home(wb, k, acc, banks):
         ws.write(r, 0, n, k.f(font_name=EN, font_size=10, bold=True, font_color=WHITE,
                               bg_color=GOLD, align="center", valign="vcenter"))
         ws.merge_range(r, 1, r, last, txt,
-                       k.f(font_name=FA, font_size=10, color=INK) if False else
                        k.f(font_name=FA, font_size=10, font_color=INK, align="right",
                            valign="vcenter", border=1, border_color=LINE_SOFT))
         ws.set_row(r, 24)
@@ -948,6 +1033,22 @@ def sheet_home(wb, k, acc, banks):
     k.note(ws, r + 1, last,
            "قاعده طلایی: هر بانکی که در فهرست بانک‌های شرکت نیست، اجازه ثبت ندارد. اگر حساب جدیدی باز کردید، "
            "اول آن را در فایل مادر (شیت Bnk) اضافه کنید و بعد این فایل را باز کنید.", bg=MINT, icon="flag")
+    k.section(ws, r + 3, last, "۰۳", "فایل‌های همراه",
+              "همه در همین پوشه‌اند؛ با مسیر نسبی باز می‌شوند")
+    k.nav(ws, r + 4, [
+        ("فایل مادر  00_Master", "تعریف حساب‌ها، بانک‌ها، اشخاص باسکول دیگران و همه کشوها",
+         "external:00_Master.xlsx", "list", FOREST),
+        ("دفتر ثبت  01_Entry", "ثبت روزانه باسکول، سبد و پرداخت‌ها؛ منبع دفتر روزنامه",
+         "external:01_Entry.xlsx", "list", GOLD),
+        ("داشبورد  08_Dash", "نمای کلی بانک‌ها، پز و محصولات با نمودار زنده",
+         "external:08_Dash.xlsx", "chart", SAGE),
+        ("تراز  05_Bal", "تراز آزمایشی و دفتر حساب‌ها",
+         "external:05_Bal.xlsx", "scale", BLUE),
+        ("گزارش‌ها  03_Report", "گزارش سود و زیان و گردش حساب‌ها",
+         "external:03_Report.xlsx", "gauge", TERRA),
+        ("راهنمای این فایل  Help", "آموزش گام‌به‌گام شیت‌ها و قواعد ثبت",
+         "internal:Help!A1", "help", "#8E6C88"),
+    ], last, per_row=3)
     return ws
 
 
@@ -1069,6 +1170,7 @@ def build(master_path, out_path, demo=None):
     sheet_sum(wb, k, banks)
     sheet_flow(wb, k)
     sheet_anal(wb, k)
+    sheet_payable(wb, k, bd)
     sheet_card(wb, k, banks)
     sheet_chq(wb, k)
     sheet_sync(wb, k, acc, banks, gl, bd)
