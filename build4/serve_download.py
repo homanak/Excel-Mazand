@@ -170,12 +170,13 @@ def build_page():
     cards = []
     for name, title, desc in FILES:
         p = os.path.join(SRC, name)
-        mb = size_of(p) / 1048576
+        sz = size_of(p)
+        mb = f"{sz/1048576:.1f} MB" if sz >= 1048576 else f"{sz/1024:.0f} KB"
         cards.append(
             f'    <div class="card">\n'
             f'      <div class="name">{html.escape(title)}</div>\n'
             f'      <div class="desc">{html.escape(desc)}</div>\n'
-            f'      <div class="row"><code>{html.escape(name)} · {mb:.1f} MB</code>'
+            f'      <div class="row"><code>{html.escape(name)} · {mb}</code>'
             f'<a href="/f/{html.escape(name)}" download>دانلود ⬇</a></div>\n'
             f'    </div>')
     page = PAGE.format(zipname=ZIP_NAME, zipsize=human(size_of(ZIP)),
