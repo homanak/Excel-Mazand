@@ -49,8 +49,50 @@ def style(cell, **kw):
     cell.alignment = st["alignment"]
 
 
+def unify_bank_codes(wb):
+    """BNxx is the one and only bank code — it *is* the ledger account code.
+
+    The v01 sheet carried BN01..BN10 in the code column and BN01..BN10 in the
+    account column; the same bank therefore had two identities.  Here the code
+    column takes over the account code, the duplicated column is kept as the
+    «کد حساب معین» mirror, and any leftover BANKxx text anywhere in the book is
+    rewritten, so links and formulas built on either identity keep working.
+    """
+    import re
+    bnk = wb["Bnk"]
+    bnk.cell(8, 1, "کد بانک")
+    bnk.cell(9, 1, "Code")
+    bnk.cell(8, 4, "کد حساب معین")
+    bnk.cell(9, 4, "Ledger")
+    for r in range(10, 20):
+        code = bnk.cell(r, 1).value
+        if not isinstance(code, str):
+            continue
+        m = re.match(r"(?:BANK|BN)(\d{2})$", code.strip())
+        if not m:
+            continue
+        bn = "BN" + m.group(1)
+        bnk.cell(r, 1).value = bn
+        bnk.cell(r, 4).value = bn
+
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                v = cell.value
+                if isinstance(v, str) and "BANK" in v:
+                    cell.value = re.sub(r"BANK(\d{2})", r"BN\1", v)
+
+    # the clearing account gets an honest title
+    acc = wb["Acc"]
+    for r in range(10, 260):
+        if str(acc.cell(r, 1).value).strip() == "X011":
+            acc.cell(r, 4).value = "حساب واسط بانک و پز (در راه)"
+            break
+
+
 def build(src, dst):
     wb = openpyxl.load_workbook(src)
+    unify_bank_codes(wb)
     ls = wb["List"]
 
     # ---- read BD persons from Accounts
@@ -72,7 +114,7 @@ def build(src, dst):
         ("نوع عملیات بانکی", "Bank operations", [o[0] for o in BANK_OPS]),
         ("شخص باسکول دیگران", "Other scales",
          [f"{c} – {n}" if n else f"{c} – (بدون نام)" for c, n in bd]),
-        ("بانک عامل (نام)", "Company banks", [f"{c} – {t}" for c, t in banks]),
+        ("بانک عامل (کد و نام)", "Company banks", [f"{c} – {t}" for c, t in banks]),
     ]
     for i, (fa, en, values) in enumerate(blocks):
         c = start_col + i
@@ -95,7 +137,7 @@ def build(src, dst):
 
     # ---- defined names
     want = {
-        "ListBankOps": f"List!$S$10:$S$25",
+        "ListBankOps": f"List!$S$10:$S$29",
         "ListOtherScalesLabel": f"List!$T$10:$T$29",
         "ListBankNames": f"List!$U$10:$U$19",
     }

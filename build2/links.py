@@ -50,13 +50,14 @@ def patch(path, links):
     wb_xml = items["xl/workbook.xml"].decode("utf-8")
     rels = items["xl/_rels/workbook.xml.rels"].decode("utf-8")
     ct = items["[Content_Types].xml"].decode("utf-8")
-    if "externalLink+xml" in ct:
-        return
+    # the package may already carry external links (a copied file): append
+    existing = len(re.findall(r"<externalReference ", wb_xml))
+    start = existing + 1
 
     ids = [int(x) for x in re.findall(r'Id="rId(\d+)"', rels)]
     nid = (max(ids) + 1) if ids else 1
     refs = []
-    for i, link in enumerate(links, start=1):
+    for i, link in enumerate(links, start=start):
         rid = f"rId{nid}"
         nid += 1
         refs.append(f'<externalReference r:id="{rid}"/>')
@@ -87,9 +88,12 @@ def patch(path, links):
                         f'<Override PartName="/xl/externalLinks/externalLink{i}.xml" '
                         f'ContentType="{CT}"/></Types>')
 
-    block = "<externalReferences>" + "".join(refs) + "</externalReferences>"
-    if "<externalReferences>" not in wb_xml:
-        wb_xml = wb_xml.replace("</sheets>", "</sheets>" + block, 1)
+    block = "".join(refs)
+    if "<externalReferences>" in wb_xml:
+        wb_xml = wb_xml.replace("</externalReferences>", block + "</externalReferences>", 1)
+    else:
+        wb_xml = wb_xml.replace("</sheets>", "</sheets><externalReferences>"
+                                + block + "</externalReferences>", 1)
 
     items["xl/workbook.xml"] = wb_xml.encode("utf-8")
     items["xl/_rels/workbook.xml.rels"] = rels.encode("utf-8")

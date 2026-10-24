@@ -227,17 +227,18 @@ def sheet_pos(wb, k, dates):
     ws = wb.add_worksheet("Pos")
     last = 7
     k.setup(ws, last, 12 + 45 + 4, landscape=True, repeat=(11, 11), freeze=(13, 2))
-    k.brand(ws, last, "کنترل پز باسکول و واریزی روز بعد",
-            "پز ثبت‌شده در باسکول  ↔  واریزی به ۲۰۰۶  ↔  کارت‌به‌کارت سایر بانک‌ها", icon="card")
+    k.brand(ws, last, "کنترل پز روزانه و واریز آن به بانک",
+            "پز ثبت‌شده در دفتر روزنامه  ↔  واریزی همان روز به حساب بانکی  ↔  سایر واریزها", icon="card")
     k.kpis(ws, 6, [
-        ("پز باسکول", "=SUM($C$13:$C$52)", INT, GOLD, "pos"),
-        ("واریز به ۲۰۰۶", "=SUM($D$13:$D$52)", INT, GREEN, "bank"),
-        ("کارت‌به‌کارت", "=SUM($E$13:$E$52)", INT, TERRA, "card"),
+        ("پز دفتر روزنامه", "=SUM($C$13:$C$52)", INT, GOLD, "pos"),
+        ("واریز پز به بانک", "=SUM($D$13:$D$52)", INT, GREEN, "bank"),
+        ("سایر واریزها", "=SUM($E$13:$E$52)", INT, SAGE, "card"),
         ("اختلاف", "=SUM($F$13:$F$52)", INT_RED, RED, "warn"),
     ], last)
-    heads = [("تاریخ پز", "POS date", 13), ("تاریخ واریز", "Deposit", 13),
-             ("پز باسکول", "POS", 17), ("واریز ۲۰۰۶", "To 2006", 17),
-             ("کارت‌به‌کارت", "Card", 17), ("اختلاف", "Diff", 15), ("وضعیت", "Status", 13)]
+    heads = [("تاریخ", "Date", 13), ("تاریخ واریز", "Deposit", 13),
+             ("پز دفتر", "Journal POS", 17), ("واریز پز به بانک", "POS bank", 17),
+             ("سایر واریزها", "Other", 17), ("اختلاف", "Diff", 15),
+             ("وضعیت", "Status", 13)]
     for i, (fa, en, w) in enumerate(heads):
         ws.set_column(i, i, w)
         ws.write(11, i, f"{fa}\n{en}",
@@ -256,22 +257,25 @@ def sheet_pos(wb, k, dates):
         ws.write_formula(
             r, 2,
             f'=IF($A{r+1}="","",SUMIFS(F1!$L${F1_FIRST}:$L${F1_LAST},F1!$A${F1_FIRST}:$A${F1_LAST},'
-            f'$A{r+1},F1!$D${F1_FIRST}:$D${F1_LAST},"BANK02",F1!$C${F1_FIRST}:$C${F1_LAST},"باسکول"))',
+            f'$A{r+1},F1!$D${F1_FIRST}:$D${F1_LAST},"X011",'
+            f'F1!$N${F1_FIRST}:$N${F1_LAST},"پوز"))',
             k.f(font_name=EN, font_size=9, bg_color=GOLD_L, border=1,
                 border_color=LINE_SOFT, align="center", num_format=INT))
         ws.write_formula(
             r, 3,
             f'=IF($A{r+1}="","",SUMIFS(F2!$I${F2_FIRST}:$I${F2_LAST},F2!$A${F2_FIRST}:$A${F2_LAST},'
-            f'IF($B{r+1}="",$A{r+1},$B{r+1}),F2!$G${F2_FIRST}:$G${F2_LAST},"واریز پز باسکول (۲۰۰۶)"))',
+            f'IF($B{r+1}="",$A{r+1},$B{r+1}),F2!$D${F2_FIRST}:$D${F2_LAST},"BN*",'
+            f'F2!$G${F2_FIRST}:$G${F2_LAST},"واریز پز باسکول (۲۰۰۶)"))',
             k.f(font_name=EN, font_size=9, bg_color=MINT, border=1,
                 border_color=LINE_SOFT, align="center", num_format=INT))
         ws.write_formula(
             r, 4,
             f'=IF($A{r+1}="","",SUMIFS(F2!$I${F2_FIRST}:$I${F2_LAST},F2!$A${F2_FIRST}:$A${F2_LAST},'
-            f'IF($B{r+1}="",$A{r+1},$B{r+1}),F2!$G${F2_FIRST}:$G${F2_LAST},"دریافت هزینه باسکول دیگران"))',
+            f'IF($B{r+1}="",$A{r+1},$B{r+1}),F2!$D${F2_FIRST}:$D${F2_LAST},"BN*",'
+            f'F2!$G${F2_FIRST}:$G${F2_LAST},"تسویه دریافت (واسط)"))',
             k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1,
                 border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 5, f'=IF($A{r+1}="","",$C{r+1}-$D{r+1}-$E{r+1})',
+        ws.write_formula(r, 5, f'=IF($A{r+1}="","",$C{r+1}-$D{r+1})',
                          k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM,
                              border=1, border_color=LINE_SOFT, align="center",
                              num_format=INT_RED))
@@ -288,22 +292,22 @@ def sheet_pos(wb, k, dates):
                                          "value": "⚠", "format": k.f(bg_color="#FBE3D8",
                                                                      font_color=TERRA, bold=True)})
     ch = wb.add_chart({"type": "line"})
-    ch.add_series({"name": "پز باسکول", "categories": ["Pos", 12, 0, 41, 0],
+    ch.add_series({"name": "پز دفتر روزنامه", "categories": ["Pos", 12, 0, 41, 0],
                    "values": ["Pos", 12, 2, 41, 2], "line": {"color": GOLD, "width": 2.4},
                    "marker": {"type": "circle", "size": 4, "fill": {"color": WHITE},
                               "border": {"color": GOLD}}})
-    ch.add_series({"name": "واریز ۲۰۰۶", "categories": ["Pos", 12, 0, 41, 0],
+    ch.add_series({"name": "واریز پز به بانک", "categories": ["Pos", 12, 0, 41, 0],
                    "values": ["Pos", 12, 3, 41, 3], "line": {"color": FOREST, "width": 2.2},
                    "marker": {"type": "square", "size": 4, "fill": {"color": WHITE},
                               "border": {"color": FOREST}}})
-    ch.set_title({"name": "پز باسکول در برابر واریزی", "name_font": {"name": FA, "size": 11}})
+    ch.set_title({"name": "پز دفتر در برابر واریز به بانک", "name_font": {"name": FA, "size": 11}})
     ch.set_legend({"position": "bottom", "font": {"name": FA, "size": 8}})
     ch.set_plotarea({"fill": {"color": "#FCFAF4"}})
     ch.set_size({"width": 620, "height": 240})
     ws.insert_chart("A55", ch, {"x_offset": 8, "y_offset": 6})
     k.note(ws, 53, last,
-           "اختلاف بیش از ۱٬۰۰۰ ریال با ⚠ نمایش داده می‌شود. علت‌های رایج: یک واریزی در فایل بانک ثبت نشده، "
-           "یا پز به بانک دیگری رفته که در ستون کارت‌به‌کارت دیده می‌شود. اعداد این نسخه نمونه‌اند.", bg=SAND, icon="warn")
+           "اختلاف بیش از ۱٬۰۰۰ ریال با ⚠ نمایش داده می‌شود. علت‌های رایج: واریزی پز در 02_Bank ثبت نشده، "
+           "یا مبلغ پز در دفتر روزنامه اشتباه است. اعداد این نسخه نمونه‌اند.", bg=SAND, icon="warn")
     return ws
 
 
@@ -314,10 +318,10 @@ def sheet_banks(wb, k, banks):
     k.brand(ws, last, "وضعیت بانک‌ها",
             "مانده هر حساب از دفتر تراکنش‌های بانکی + سهم از کل", icon="bank")
     k.kpis(ws, 6, [
-        ("جمع مانده", "=SUM($E$13:$E$22)", INT, FOREST, "money"),
-        ("جمع دریافت", "=SUM($C$13:$C$22)", INT, GREEN, "transfer"),
-        ("جمع پرداخت", "=SUM($D$13:$D$22)", INT, RED, "transfer"),
-        ("خالص", "=$C$8-$D$8", INT_RED, BLUE, "chart"),
+        ("جمع مانده", "=SUM($D$13:$D$22)", INT, FOREST, "money"),
+        ("جمع دریافت", "=SUM($B$13:$B$22)", INT, GREEN, "transfer"),
+        ("جمع پرداخت", "=SUM($C$13:$C$22)", INT, RED, "transfer"),
+        ("خالص", "=$C$8-$E$8", INT_RED, BLUE, "chart"),
     ], last)
     heads = [("بانک", "Bank", 26), ("دریافت", "In", 16), ("پرداخت", "Out", 16),
              ("مانده", "Balance", 17), ("سهم", "Share", 9),
@@ -497,7 +501,7 @@ def sheet_dash(wb, k):
     k.section(ws, 40, last, "۰۴", "هشدارها", "مواردی که باید همین امروز بررسی شود")
     alerts = [
         ("ردیف‌های ناقص باسکول", '=SUM(F1!$L$10:$L$1808)-SUM(F1!$M$10:$M$1808)', "اختلاف بدهکار/بستانکار دفتر"),
-        ("اختلاف پز", "=Pos!G8", "پز باسکول منهای واریزی ۲۰۰۶"),
+        ("اختلاف پز", "=Pos!G8", "پز دفتر روزنامه منهای واریز پز به بانک"),
         ("مانده منفی بانک", '=COUNTIF(Banks!$D$13:$D$22,"<0")', "تعداد حساب‌هایی که مانده منفی دارند"),
     ]
     for i, (lab, formula, hint) in enumerate(alerts):
@@ -518,7 +522,7 @@ def sheet_dash(wb, k):
 
     k.section(ws, 45, last, "۰۵", "شیت‌های این داشبورد", "روی هر کارت کلیک کنید")
     k.nav(ws, 46, [
-        ("پز و واریزی  Pos", "کنترل روزانه پز باسکول در برابر واریزی ۲۰۰۶", "internal:Pos!A1", "card", GOLD),
+        ("پز و واریزی  Pos", "کنترل روزانه پز دفتر روزنامه در برابر واریز پز به بانک", "internal:Pos!A1", "card", GOLD),
         ("بانک‌ها  Banks", "مانده و سهم هر بانک از گردش", "internal:Banks!A1", "bank", FOREST),
         ("روند  Time", "وزن و مبلغ ماه به ماه", "internal:Time!A1", "chart", SAGE),
         ("عملیات  Ops", "تحلیل نوع عملیات", "internal:Ops!A1", "gauge", BLUE),
@@ -545,11 +549,11 @@ def sheet_help(wb, k):
             ("b", "کل وزن (kg): جمع وزن خالص همه ردیف‌های باسکول در کل دوره — همان عدد شیت Time."),
             ("b", "کل مبلغ: جمع مبلغ تمام ردیف‌های دفتر (خرید، فروش، هزینه و …)."),
             ("b", "جمع بدهکار: جمع ستون بدهکار دفتر؛ در ثبت دوطرفه با جمع بستانکار برابر است."),
-            ("b", "اختلاف پز: پز ثبت‌شده منهای واریزی ۲۰۰۶ و دریافتی باسکول دیگران؛ باید نزدیک صفر باشد."),
+            ("b", "اختلاف پز: پز ثبت‌شده در دفتر منهای واریز پز به بانک؛ باید نزدیک صفر باشد."),
         ]),
         ("۰۳", "شیت Pos", [
             ("p", "هر ردیف یک تاریخ است. اگر روز واریز با روز پز یکی نیست، تاریخ واریز را در ستون B بنویسید."),
-            ("b", "ستون کارت‌به‌کارت مبالغی است که به جای ۲۰۰۶ به حساب دیگری رفته‌اند."),
+            ("b", "ستون «سایر واریزها» واریزهایی است که از راه واسط X011 به بانک رسیده و مربوط به پز نیست."),
             ("b", "برای ماه جدید، یک تاریخ جدید در ستون A اضافه کنید."),
         ]),
         ("۰۴", "شیت Time و Ops", [
