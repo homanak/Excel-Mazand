@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+build2/feed_cache.json
+build2/_h1.json
+build2/_h2.json
+build2/_dash.xlsx
+build2/*.tmp
+~$*
+.DS_Store
