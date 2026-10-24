@@ -7,3 +7,6 @@ build2/_dash.xlsx
 build2/*.tmp
 ~$*
 .DS_Store
+
+# generated download bundle
+download_v04/
