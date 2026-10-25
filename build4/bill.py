@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Automatic, print-ready invoice (sheet ``Bill``) for 01_Entry.
+"""Automatic, print-ready invoices (sheets ``Bill`` and ``BillBuy``) for 01_Entry.
 
 Type a customer code in one cell (outside the print area) and the whole
 invoice builds itself from the Scale register:
@@ -11,6 +11,10 @@ invoice builds itself from the Scale register:
   changed without touching the printed page
 * a payment block lists the deposits this customer has already made
   (cheque / transfer / cash) straight from the Pay sheet
+
+``build(path)`` makes the **sale** invoice (Bill), ``build(path, "buy")`` makes
+the **purchase** invoice (BillBuy — the load received from a grower), with the
+same engine: only the filter, the wording and the payment direction change.
 """
 import openpyxl
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -29,7 +33,44 @@ WIDTHS = {"A": 6, "B": 11, "C": 22, "D": 15, "E": 8, "F": 12, "G": 11,
           "H": 12, "I": 10, "J": 15, "K": 13}
 
 
-def _dvs(ws):
+CFG = {
+    "sale": {
+        "sheet": "Bill",
+        "head": "   فاکتور خودکار فروش — کد مشتری را در کادر زرد (بیرون از چاپ) بزنید؛ "
+                "بار، سبد، وزن خالص، افت و واریزی‌ها خودکار می‌آید",
+        "party": "کد مشتری", "party_name": "نام مشتری", "party_dv": "ListAllCodes",
+        "op": "",                       # no operation filter: every load of the customer
+        "pay_type": "دریافت",
+        "pay_title": "   واریزی‌های انجام‌شده این مشتری — چک، انتقال بانکی و نقد (از شیت پرداخت)",
+        "pay_total": "جمع واریزی این مشتری",
+        "balance": "مانده فاکتور",
+        "sign_r": "مهر و امضای فروشنده",
+        "sign_l": "امضای خریدار",
+        "inv_no": "INV-1405-001",
+        "loss": 0.01,
+        "hdr": "فاکتور فروش",
+    },
+    "buy": {
+        "sheet": "BillBuy",
+        "head": "   فاکتور خودکار خرید — کد باغدار را در کادر زرد (بیرون از چاپ) بزنید؛ "
+                "بار تحویلی، سبد، وزن خالص و پرداختی‌های ما خودکار می‌آید",
+        "party": "کد باغدار", "party_name": "نام باغدار", "party_dv": "ListAllCodes",
+        "op": "خرید",
+        "pay_type": "پرداخت",
+        "pay_title": "   پرداختی‌های انجام‌شده به این باغدار — چک، انتقال بانکی و نقد "
+                     "(از شیت پرداخت)",
+        "pay_total": "جمع پرداختی به این باغدار",
+        "balance": "مانده بدهی به باغدار",
+        "sign_r": "مهر و امضای باغدار (فروشنده)",
+        "sign_l": "مهر و امضای خریدار — مازندشت",
+        "inv_no": "PUR-1405-001",
+        "loss": 0.0,
+        "hdr": "فاکتور خرید",
+    },
+}
+
+
+def _dvs(ws, cfg):
     """Dropdowns for the manual-override columns."""
     dv_prod = DataValidation(type="list", formula1="=ListProducts", allow_blank=True,
                              showDropDown=False, errorStyle="warning",
@@ -39,10 +80,11 @@ def _dvs(ws):
                              showDropDown=False, errorStyle="warning",
                              error="سبد را از فهرست فایل مادر انتخاب کنید.",
                              promptTitle="سبد", prompt="نوع سبد را انتخاب کنید.")
-    dv_code = DataValidation(type="list", formula1="=ListAllCodes", allow_blank=True,
+    dv_code = DataValidation(type="list", formula1="=" + cfg["party_dv"], allow_blank=True,
                              showDropDown=False, errorStyle="warning",
-                             error="کد مشتری باید در فایل مادر تعریف شده باشد.",
-                             promptTitle="کد مشتری", prompt="کد مشتری را از فهرست انتخاب کنید.")
+                             error="کد باید در فایل مادر تعریف شده باشد.",
+                             promptTitle=cfg["party"],
+                             prompt=cfg["party"] + " را از فهرست انتخاب کنید.")
     for dv in (dv_prod, dv_bask, dv_code):
         ws.add_data_validation(dv)
     dv_code.add(ws["O2"])
@@ -50,13 +92,14 @@ def _dvs(ws):
     dv_bask.add(ws["O10"])
 
 
-def build(path):
+def build(path, mode="sale", index=None):
     global SCALE_LAST, PAY_LAST
     SCALE_LAST, PAY_LAST = grow.SCALE_LAST, grow.PAY_LAST
+    cfg = CFG[mode]
     wb = openpyxl.load_workbook(path)
-    if SHEET in wb.sheetnames:
-        del wb[SHEET]
-    ws = wb.create_sheet(SHEET, 6)
+    if cfg["sheet"] in wb.sheetnames:
+        del wb[cfg["sheet"]]
+    ws = wb.create_sheet(cfg["sheet"], 6 if index is None else index)
 
     for col, w in WIDTHS.items():
         ws.column_dimensions[col].width = w
@@ -75,8 +118,7 @@ def build(path):
 
     ws.merge_cells("A2:K2")
     c = ws["A2"]
-    c.value = "   فاکتور خودکار — کد مشتری را در کادر زرد (بیرون از چاپ) بزنید؛ "
-    c.value += "بار، سبد، وزن خالص، افت و واریزی‌ها خودکار می‌آید"
+    c.value = cfg["head"]
     C.st(c, name=L.FA, size=9.5, color=L.MUTED, bg=L.CREAM, border=L.CREAM, h="right")
     ws.row_dimensions[2].height = 22
 
@@ -86,8 +128,8 @@ def build(path):
     c.value = "   مشخصات فاکتور"
     C.st(c, name=L.FA, size=10.5, bold=True, color=L.WHITE, bg=L.GOLD, border=L.GOLD, h="right")
 
-    labels = [("A5", "شماره فاکتور"), ("C5", "تاریخ فاکتور"), ("E5", "کد مشتری"),
-              ("G5", "نام مشتری"), ("I5", "گروه / نوع")]
+    labels = [("A5", "شماره فاکتور"), ("C5", "تاریخ فاکتور"), ("E5", cfg["party"]),
+              ("G5", cfg["party_name"]), ("I5", "گروه / نوع")]
     for ref, text in labels:
         C.put(ws, ref, text, name=L.FA, size=8.5, bold=True, color=L.MUTED, bg=L.SAND2,
               border=L.LINE, h="center")
@@ -126,10 +168,12 @@ def build(path):
     last = first + ROWS - 1
     for r in range(first, last + 1):
         n = r - 10
+        opf = (f'*ISNUMBER(SEARCH("{cfg["op"]}",Scale!$E$10:$E${SCALE_LAST}))'
+               if cfg["op"] else '')
         cond = (f'(((Scale!$G$10:$G${SCALE_LAST}=$O$2))'
                 f'*((($O$3="")+(Scale!$B$10:$B${SCALE_LAST}>=$O$3))>0)'
                 f'*((($O$4="")+(Scale!$B$10:$B${SCALE_LAST}<=$O$4))>0)'
-                f'*(Scale!$E$10:$E${SCALE_LAST}<>""))')
+                f'*((Scale!$E$10:$E${SCALE_LAST}<>""){opf}))')
         ws.cell(r, 12).value = (f'=IFERROR(AGGREGATE(15,6,(ROW(Scale!$B$10:$B${SCALE_LAST}))/'
                                 f'{cond},{n}),"")')
         idx = f"$L{r}"
@@ -216,7 +260,7 @@ def build(path):
     p0 = t3 + 2                       # 35
     ws.merge_cells(f"A{p0}:K{p0}")
     c = ws[f"A{p0}"]
-    c.value = "   واریزی‌های انجام‌شده این مشتری — چک، انتقال بانکی و نقد (از شیت پرداخت)"
+    c.value = cfg["pay_title"]
     C.st(c, name=L.FA, size=10.5, bold=True, color=L.WHITE, bg=L.SKY_D, border=L.SKY_D,
          h="right")
     ph = ["تاریخ", "روش", "شماره چک", "سررسید", "مبلغ", "وضعیت"]
@@ -235,7 +279,8 @@ def build(path):
         n = i + 1
         ws.cell(r, 13).value = (
             f'=IFERROR(AGGREGATE(15,6,(ROW(Pay!$B$10:$B${PAY_LAST}))/'
-            f'((Pay!$F$10:$F${PAY_LAST}=$O$2)*(Pay!$D$10:$D${PAY_LAST}="دریافت")),{n}),"")')
+            f'((Pay!$F$10:$F${PAY_LAST}=$O$2)'
+            f'*(Pay!$D$10:$D${PAY_LAST}="{cfg["pay_type"]}")),{n}),"")')
         idx = f"$M{r}"
         pos = f"({idx}-9)"
         ws.cell(r, 1).value = f'=IF({idx}="","",INDEX(Pay!$B$10:$B${PAY_LAST},{pos}))'
@@ -262,14 +307,14 @@ def build(path):
     pt1 = pf + PAY_ROWS                          # totals row
     ws.merge_cells(f"A{pt1}:C{pt1}")
     c = ws[f"A{pt1}"]
-    c.value = "جمع واریزی این مشتری"
+    c.value = cfg["pay_total"]
     C.st(c, name=L.FA, size=10, bold=True, color=L.WHITE, bg=L.SKY_D, border=L.SKY_D,
          h="right")
     c = ws.cell(pt1, 4, f'=SUMIFS(Pay!$K$10:$K${PAY_LAST},Pay!$F$10:$F${PAY_LAST},$O$2,'
-                        f'Pay!$D$10:$D${PAY_LAST},"دریافت")')
+                        f'Pay!$D$10:$D${PAY_LAST},"{cfg["pay_type"]}")')
     C.st(c, name=L.EN, size=10.5, bold=True, color=L.WHITE, bg=L.SKY_D, border=L.SKY_D,
          h="center", fmt=L.INT)
-    ws.cell(pt1, 5).value = "مانده فاکتور"
+    ws.cell(pt1, 5).value = cfg["balance"]
     C.st(ws.cell(pt1, 5), name=L.FA, size=9, bold=True, color=L.WHITE, bg=L.SKY_D,
          border=L.SKY_D, h="center")
     ws.merge_cells(start_row=pt1, start_column=6, end_row=pt1, end_column=11)
@@ -280,11 +325,10 @@ def build(path):
     # ----------------------------------------------------------- signatures
     sr = pt1 + 3
     ws.merge_cells(start_row=sr, start_column=1, end_row=sr, end_column=5)
-    ws.cell(sr, 1).value = "مهر و امضای فروشنده"
+    ws.cell(sr, 1).value = cfg["sign_r"]
     ws.merge_cells(start_row=sr, start_column=7, end_row=sr, end_column=11)
-    ws.cell(sr, 7).value = "امضای خریدار"
-    for ref, txt in ((ws.cell(sr, 1), "مهر و امضای فروشنده"),
-                     (ws.cell(sr, 7), "امضای خریدار")):
+    ws.cell(sr, 7).value = cfg["sign_l"]
+    for ref, txt in ((ws.cell(sr, 1), cfg["sign_r"]), (ws.cell(sr, 7), cfg["sign_l"])):
         C.st(ref, name=L.FA, size=9.5, bold=True, color=L.MUTED, bg=L.CREAM,
              border=L.LINE, h="center")
     ws.row_dimensions[sr].height = 44
@@ -303,12 +347,12 @@ def build(path):
     C.st(c, name=L.FA, size=10, bold=True, color=L.WHITE, bg=L.TERRA, border=L.TERRA,
          h="center")
 
-    ctrl = [("N2", "کد مشتری  *", "O2", None, L.INPUT),
+    ctrl = [("N2", cfg["party"] + "  *", "O2", None, L.INPUT),
             ("N3", "از تاریخ (اختیاری)", "O3", None, L.INPUT),
             ("N4", "تا تاریخ (اختیاری)", "O4", None, L.INPUT),
-            ("N5", "درصد افت (مثلاً 1%)", "O5", 0.01, L.INPUT),
+            ("N5", "درصد افت (مثلاً 1%)", "O5", cfg["loss"], L.INPUT),
             ("N6", "ضایعات کل (kg)", "O6", 0, L.INPUT),
-            ("N7", "شماره فاکتور", "O7", "INV-1405-001", L.INPUT),
+            ("N7", "شماره فاکتور", "O7", cfg["inv_no"], L.INPUT),
             ("N8", "تاریخ فاکتور", "O8", "1405/07/10", L.INPUT)]
     for lab_ref, lab, val_ref, default, bg in ctrl:
         ws[lab_ref] = lab
@@ -345,7 +389,7 @@ def build(path):
                "۶) هیچ‌کدام از این کادرها چاپ نمی‌شوند.")
     C.st(c, name=L.FA, size=8.5, color=L.INK, bg=L.CREAM, border=L.LINE, h="right", wrap=True)
 
-    _dvs(ws)
+    _dvs(ws, cfg)
 
     ws.print_area = f"A1:K{fr}"
     ws.page_setup.paperSize = 9
@@ -354,8 +398,9 @@ def build(path):
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0
     ws.print_options.horizontalCentered = True
-    ws.oddHeader.left.text = "مازندشت — فاکتور فروش"
-    ws.oddHeader.center.text = "MAZANDASHT · INVOICE"
+    ws.oddHeader.left.text = "مازندشت — " + cfg["hdr"]
+    ws.oddHeader.center.text = ("MAZANDASHT · " +
+                                ("PURCHASE INVOICE" if mode == "buy" else "SALES INVOICE"))
     ws.oddHeader.right.text = "&A"
     ws.oddFooter.left.text = "&F"
     ws.oddFooter.center.text = "صفحه &P از &N"

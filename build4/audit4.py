@@ -177,23 +177,26 @@ def book_structure():
         ws = wb[sheet]
         print(f"   {sheet}: dims {ws.dimensions}  print {ws.print_area}  "
               f"dv {len(ws.data_validations.dataValidation)}")
-    if "Bill" not in wb.sheetnames:
-        bad("01_Entry: no Bill sheet")
-    else:
-        bl = wb["Bill"]
+    for bname, pt in (("Bill", "دریافت"), ("BillBuy", "پرداخت")):
+        if bname not in wb.sheetnames:
+            bad(f"01_Entry: no {bname} sheet")
+            continue
+        bl = wb[bname]
         area = str(bl.print_area or "").replace("$", "").replace("'", "")
         net = str(bl["H11"].value or "")
-        print(f"   Bill: dims {bl.dimensions}  print {area}  dv {len(bl.data_validations.dataValidation)}")
-        if not area.startswith("Bill!A1:K"):
-            bad(f"Bill print area {area} is not A1:K…")
+        print(f"   {bname}: dims {bl.dimensions}  print {area}  "
+              f"dv {len(bl.data_validations.dataValidation)}")
+        if not area.startswith(f"{bname}!A1:K"):
+            bad(f"{bname} print area {area} is not A1:K…")
         if "FLOOR(" not in net or "$O$5" not in net:
-            bad("Bill net-kg formula missing FLOOR / loss cell")
-        if "A11" not in area and not area.startswith("Bill!A1:"):
-            bad("Bill print area does not include the line table")
+            bad(f"{bname} net-kg formula missing FLOOR / loss cell")
+        pay = str(bl["D47"].value or "")
+        if pt not in pay:
+            bad(f"{bname} payment total does not filter on «{pt}»")
         refs = {str(dv.sqref) for dv in bl.data_validations.dataValidation}
         for want in ("O2", "O9", "O10"):
             if want not in refs:
-                bad(f"Bill: no dropdown on {want}")
+                bad(f"{bname}: no dropdown on {want}")
     gp = [ws_g for ws_g in wb["GRep"].iter_rows(min_row=13, max_row=24, min_col=3, max_col=3,
                                                 values_only=True)]
     print("   GRep formula sample:", str(gp[0][0])[:90])
@@ -246,6 +249,14 @@ def bank_structure():
     if people < 5:
         bad("Payable report lists too few people")
     print("   Payable sample:", str(pay.cell(13, 3).value)[:80])
+    dn = {k: v.attr_text for k, v in wb.defined_names.items()}
+    grp = [k for k in dn if k.startswith("ClsG")]
+    print(f"   class groups: {len(grp)} ranges · ListClsParent={dn.get('ListClsParent')}")
+    if len(grp) < 5 or "ClsMap" not in dn or "ListClsParent" not in dn:
+        bad("02_Bank: dependent category dropdowns are not wired (ClsG*/ClsMap)")
+    dv_src = [str(dv.formula1) for dv in txn.data_validations.dataValidation]
+    if not any("INDIRECT" in x for x in dv_src):
+        bad("02_Bank/Txn: sub-category dropdown is not dependent (no INDIRECT)")
     for name in ("Anal", "Class", "Personal"):
         if name not in wb.sheetnames:
             bad(f"02_Bank: no {name} sheet")
@@ -261,6 +272,31 @@ def bank_structure():
     print("   باسکول دیگران rows in Txn:", sum(bd.values()), dict(bd))
     if not sum(bd.values()):
         bad("no «باسکول دیگران» transaction in 02_Bank → Payable report is empty")
+    wb.close()
+
+
+def master_cls():
+    print("\n00_Master.xlsx — Cls (two-column classification)")
+    p = os.path.join(OUT, "00_Master.xlsx")
+    wb = openpyxl.load_workbook(p, read_only=True)
+    if "Cls" not in wb.sheetnames:
+        bad("00_Master: no Cls sheet")
+        wb.close()
+        return
+    ws = wb["Cls"]
+    heads = [ws.cell(8, c) for c in range(1, 8)]
+    print("   heads:", [h.value for h in heads if h.value])
+    n = 0
+    parents = set()
+    for r in range(10, 400):
+        row = [ws.cell(r, c).value for c in range(1, 8)]
+        if not row[2]:
+            continue
+        n += 1
+        parents.add(row[1])
+    print(f"   rows: {n}  parents: {len(parents)}  {sorted(parents)[:3]}")
+    if n < 20 or len(parents) < 5:
+        bad("00_Master/Cls: classification table too small")
     wb.close()
 
 
@@ -316,6 +352,7 @@ def main(verbose=False):
     for f in files:
         audit_file(os.path.join(OUT, f), verbose)
     book_structure()
+    master_cls()
     bank_structure()
     cross_links()
     mirrors()

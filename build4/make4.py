@@ -160,16 +160,17 @@ def master_extras(path):
     ws.row_dimensions[1].height = 30
     ws.merge_cells("A2:G2")
     c = ws["A2"]
-    c.value = ("   هر ردیف یک زیرمجموعه است: خرید مرکبات، فروش مرکبات، قبض، حقوق، "
-               "تعمیر و نگهداری دستگاه‌ها، و هزینه‌های شخصی رئیس. ستون «دامنه» مشخص می‌کند "
-               "این پول شرکت است یا پول شخصی رئیس.")
+    c.value = ("   دو ستون اول، کشوی دوستونی شیت Txn را می‌سازد: «طبقه» (کشوی اول) و "
+               "«زیرطبقه» (کشوی دوم) — بعد از انتخاب طبقه، فقط زیرطبقه‌های همان طبقه نشان داده "
+               "می‌شود. ستون «دامنه» می‌گوید این پول شرکت است یا پول شخصی رئیس.")
     c.font = Font(name="B Nazanin", size=9, color="6B7A76")
     c.fill = PatternFill("solid", fgColor="FBF8F1")
     c.alignment = Alignment(horizontal="right", vertical="center", wrap_text=True)
     ws.row_dimensions[2].height = 30
 
-    heads = ["کد", "عنوان طبقه‌بندی", "دامنه", "گروه حساب", "توضیح", "فعال"]
-    spans = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6)]
+    heads = ["کد", "طبقه (کشوی اول)", "زیرطبقه (کشوی دوم)", "دامنه", "گروه حساب",
+             "توضیح", "فعال"]
+    spans = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7)]
     for (a, b), h in zip(spans, heads):
         cell = ws.cell(8, a, h)
         cell.font = Font(name="B Nazanin", size=9.5, bold=True, color=white)
@@ -178,7 +179,7 @@ def master_extras(path):
         cell.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[8].height = 24
 
-    ens = ["Code", "Classification", "Scope", "Group", "Note", "Active"]
+    ens = ["Code", "Category", "Sub-category", "Scope", "Group", "Note", "Active"]
     for j, h in enumerate(ens, start=1):
         cell = ws.cell(9, j, h)
         cell.font = Font(name="Tahoma", size=7.5, color="8B7E68")
@@ -186,9 +187,9 @@ def master_extras(path):
         cell.border = box
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    for i, (code, title, scope, group) in enumerate(bank2.CLASSES):
+    for i, (code, parent, title, scope, group) in enumerate(bank2.CLASSES):
         r = 10 + i
-        vals = [code, title, scope, group,
+        vals = [code, parent, title, scope, group,
                 "پول شخصی رئیس — به حساب جاری رئیس می‌رود" if scope != "شرکتی"
                 else "هزینه/درآمد شرکت", "بله"]
         for j, v in enumerate(vals, start=1):
@@ -198,12 +199,12 @@ def master_extras(path):
             cell.fill = PatternFill("solid",
                                     fgColor="FFF1D6" if scope != "شرکتی" else sand)
             cell.border = box
-            cell.alignment = Alignment(horizontal="right" if j == 2 else "center",
+            cell.alignment = Alignment(horizontal="right" if j in (2, 3) else "center",
                                        vertical="center")
-    width = {"A": 9, "B": 36, "C": 13, "D": 24, "E": 42, "F": 8}
+    width = {"A": 9, "B": 26, "C": 34, "D": 13, "E": 22, "F": 40, "G": 8}
     for col, w in width.items():
         ws.column_dimensions[col].width = w
-    ws.print_area = f"A1:F{9 + len(bank2.CLASSES)}"
+    ws.print_area = f"A1:G{9 + len(bank2.CLASSES)}"
     ws.print_title_rows = "8:9"
     ws.page_setup.paperSize = 9
     ws.page_setup.orientation = "portrait"
@@ -287,7 +288,8 @@ def main(tiny=False):
     info = entry4.build(os.path.join(OUT, "01_Entry.xlsx"), groups)
     print(" ", info)
     bill.build(os.path.join(OUT, "01_Entry.xlsx"))
-    print("   Bill sheet: auto invoice + payment block")
+    bill.build(os.path.join(OUT, "01_Entry.xlsx"), mode="buy", index=7)
+    print("   Bill + BillBuy: automatic sale / purchase invoices")
     print("   relink:", relink.polish(os.path.join(OUT, "01_Entry.xlsx")))
 
     if os.path.exists(os.path.join(OUT, "07_Demo.xlsx")):
