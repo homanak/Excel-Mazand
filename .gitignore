@@ -13,3 +13,7 @@ download_v04/
 
 # local build venv
 .venv/
+
+# generated at build time (company seal for the invoices)
+build4/_seal.png
+build4/_preview_*.png

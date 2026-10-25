@@ -37,6 +37,7 @@ import entry4                                                       # noqa: E402
 import mirror4                                                      # noqa: E402
 import relink                                                       # noqa: E402
 import bill                                                         # noqa: E402
+import seal                                                         # noqa: E402
 
 V02 = os.path.join(ROOT, "Mazandasht_v02")
 V03 = os.path.join(ROOT, "Mazandasht_v03")
@@ -228,6 +229,43 @@ def master_extras(path):
     return len(bank2.CLASSES)
 
 
+
+# ------------------------------------------------------------------ letterhead
+def letterhead(master_path):
+    """Company block + generated seal for the printed invoices."""
+    wb = openpyxl.load_workbook(master_path, read_only=True)
+    co = {}
+    if "Co" in wb.sheetnames:
+        ws = wb["Co"]
+        pick = {"name": 7, "activity": 9, "address": 10, "phone": 11, "mobile": 12,
+                "ceo": 13}
+        for key, row in pick.items():
+            v = ws.cell(row, 3).value
+            if v:
+                co[key] = str(v).strip()
+    wb.close()
+
+    stamp = os.path.join(HERE, "_seal.png")
+    made = None
+    try:
+        made = seal.draw(stamp, brand="مازندشت")
+    except Exception:
+        made = None
+    if not made:
+        stamp = None
+
+    company = {
+        "name": co.get("name", "سورتینگ و بسته‌بندی مرکبات مازندشت"),
+        "activity": co.get("activity", "سورتینگ، بسته‌بندی و بازرگانی مرکبات"),
+        "contact": "  ·  ".join(x for x in (co.get("address", ""),
+                                            co.get("phone", ""),
+                                            co.get("mobile", "")) if x),
+        "seal": stamp,
+    }
+    return company
+
+
+
 # ---------------------------------------------------------------------- cache
 def load_cache():
     with open(CACHE, encoding="utf-8") as fh:
@@ -287,9 +325,10 @@ def main(tiny=False):
             shutil.copy2(src, os.path.join(OUT, name))
     info = entry4.build(os.path.join(OUT, "01_Entry.xlsx"), groups)
     print(" ", info)
-    bill.build(os.path.join(OUT, "01_Entry.xlsx"))
-    bill.build(os.path.join(OUT, "01_Entry.xlsx"), mode="buy", index=7)
-    print("   Bill + BillBuy: automatic sale / purchase invoices")
+    company = letterhead(os.path.join(OUT, "00_Master.xlsx"))
+    bill.build(os.path.join(OUT, "01_Entry.xlsx"), company=company)
+    bill.build(os.path.join(OUT, "01_Entry.xlsx"), mode="buy", index=7, company=company)
+    print("   Bill + BillBuy: letterhead (seal) + automatic sale / purchase invoices")
     print("   relink:", relink.polish(os.path.join(OUT, "01_Entry.xlsx")))
 
     if os.path.exists(os.path.join(OUT, "07_Demo.xlsx")):

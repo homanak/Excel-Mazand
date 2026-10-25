@@ -190,13 +190,28 @@ def book_structure():
             bad(f"{bname} print area {area} is not A1:K…")
         if "FLOOR(" not in net or "$O$5" not in net:
             bad(f"{bname} net-kg formula missing FLOOR / loss cell")
-        pay = str(bl["D47"].value or "")
+        pay = ""
+        for r_ in range(30, bl.max_row + 1):
+            v = str(bl.cell(r_, 4).value or "")
+            if "SUMIFS(Pay!" in v:
+                pay = v
+                break
         if pt not in pay:
             bad(f"{bname} payment total does not filter on «{pt}»")
         refs = {str(dv.sqref) for dv in bl.data_validations.dataValidation}
         for want in ("O2", "O9", "O10"):
             if want not in refs:
                 bad(f"{bname}: no dropdown on {want}")
+        pics = len(getattr(bl, "_images", []))
+        head = str(bl["C1"].value or "")
+        fit_h = str(bl.page_setup.fitToHeight)
+        print(f"   {bname} letterhead: name={head[:28]!r} images={pics} fitToHeight={fit_h}")
+        if pics < 2:
+            bad(f"{bname}: letterhead / signature seal missing ({pics} images)")
+        if not head.strip():
+            bad(f"{bname}: company name in the letterhead is empty")
+        if fit_h != "1":
+            bad(f"{bname}: fitToHeight={fit_h} (the invoice must fit one A4 page)")
     gp = [ws_g for ws_g in wb["GRep"].iter_rows(min_row=13, max_row=24, min_col=3, max_col=3,
                                                 values_only=True)]
     print("   GRep formula sample:", str(gp[0][0])[:90])
@@ -300,6 +315,34 @@ def master_cls():
     wb.close()
 
 
+def dashboard_cls():
+    print("\n08_Dash.xlsx — Cls (category ↔ sub-category report)")
+    p = os.path.join(OUT, "08_Dash.xlsx")
+    wb = openpyxl.load_workbook(p, data_only=False)
+    if "Cls" not in wb.sheetnames:
+        bad("08_Dash: no Cls sheet")
+        wb.close()
+        return
+    ws = wb["Cls"]
+    print(f"   dims {ws.dimensions}  print {ws.print_area}  charts {len(ws._charts)}")
+    parents = kids = 0
+    for r in range(14, ws.max_row + 1):
+        b = str(ws.cell(r, 2).value or "")
+        if b == "جمع طبقه":
+            parents += 1
+        elif "└" in b:
+            kids += 1
+    print(f"   parents {parents}  sub-categories {kids}")
+    if parents < 5 or kids < 20:
+        bad(f"08_Dash/Cls: only {parents} parents / {kids} sub-categories")
+    if not ws._charts:
+        bad("08_Dash/Cls: no chart")
+    ref = str(ws.cell(15, 3).value or "")
+    if "F2!" not in ref:
+        bad("08_Dash/Cls: the table does not read the bank feed (F2)")
+    wb.close()
+
+
 def cross_links():
     print("\nCross-file links (Home → other files) and Sync coverage")
     import glob
@@ -354,6 +397,7 @@ def main(verbose=False):
     book_structure()
     master_cls()
     bank_structure()
+    dashboard_cls()
     cross_links()
     mirrors()
     print("\n" + "=" * 70)

@@ -23,12 +23,19 @@ import grow
 import look as L
 
 SHEET = "Bill"
-ROWS = 20            # invoice lines
-PAY_ROWS = 10        # payment lines
+ROWS = 16            # invoice lines
+PAY_ROWS = 8         # payment lines
 SCALE_LAST = grow.SCALE_LAST
 PAY_LAST = grow.PAY_LAST
 
 C = L          # style shortcuts
+
+COMPANY = {
+    "name": "سورتینگ و بسته‌بندی مرکبات مازندشت",
+    "activity": "سورتینگ، بسته‌بندی و بازرگانی مرکبات",
+    "contact": "قائم‌شهر، باغدشت  ·  011-42116449  ·  0911-116-5751",
+    "seal": None,
+}
 WIDTHS = {"A": 6, "B": 11, "C": 22, "D": 15, "E": 8, "F": 12, "G": 11,
           "H": 12, "I": 10, "J": 15, "K": 13}
 
@@ -70,6 +77,34 @@ CFG = {
 }
 
 
+def _stamp(ws, seal_path):
+    """Letterhead seal at the top-right corner of the printed page."""
+    if not seal_path:
+        return
+    from openpyxl.drawing.image import Image as XLImage
+    try:
+        img = XLImage(seal_path)
+        img.width = img.height = 92
+        img.anchor = "A1"
+        ws.add_image(img)
+    except Exception:
+        pass
+
+
+def _sign_seal(ws, seal_path, anchor):
+    """Company stamp inside the seller's signature box."""
+    if not seal_path:
+        return
+    from openpyxl.drawing.image import Image as XLImage
+    try:
+        img = XLImage(seal_path)
+        img.width = img.height = 80
+        img.anchor = anchor
+        ws.add_image(img)
+    except Exception:
+        pass
+
+
 def _dvs(ws, cfg):
     """Dropdowns for the manual-override columns."""
     dv_prod = DataValidation(type="list", formula1="=ListProducts", allow_blank=True,
@@ -92,10 +127,12 @@ def _dvs(ws, cfg):
     dv_bask.add(ws["O10"])
 
 
-def build(path, mode="sale", index=None):
+def build(path, mode="sale", index=None, company=None, seals=None):
     global SCALE_LAST, PAY_LAST
     SCALE_LAST, PAY_LAST = grow.SCALE_LAST, grow.PAY_LAST
     cfg = CFG[mode]
+    if company:
+        COMPANY.update({k: v for k, v in company.items() if v})
     wb = openpyxl.load_workbook(path)
     if cfg["sheet"] in wb.sheetnames:
         del wb[cfg["sheet"]]
@@ -108,42 +145,69 @@ def build(path, mode="sale", index=None):
     for col in ("N", "O"):
         ws.column_dimensions[col].width = 20 if col == "N" else 22
 
-    # ------------------------------------------------------------- branding
-    ws.merge_cells("A1:K1")
-    c = ws["A1"]
-    c.value = "   مازندشت  ·  سورتینگ و بسته‌بندی مرکبات"
-    C.st(c, name=L.FA_T, size=15, bold=True, color=L.WHITE, bg=L.FOREST, border=L.FOREST,
-         h="right")
-    ws.row_dimensions[1].height = 30
+    # ------------------------------------------------------- letterhead
+    co = COMPANY
+    ws.merge_cells("A1:B3")                       # letterhead seal box
+    C.st(ws["A1"], name=L.FA, bg=L.CREAM, border=L.CREAM)
+    ws.merge_cells("C1:H1")
+    c = ws["C1"]
+    c.value = co["name"]
+    C.st(c, name=L.FA_T, size=15, bold=True, color=L.FOREST, bg=L.CREAM, border=L.CREAM,
+         h="right", v="center")
+    ws.merge_cells("C2:H2")
+    c = ws["C2"]
+    c.value = co["activity"]
+    C.st(c, name=L.FA, size=9.5, color=L.INK, bg=L.CREAM, border=L.CREAM, h="right",
+         v="center")
+    ws.merge_cells("C3:H3")
+    c = ws["C3"]
+    c.value = co["contact"]
+    C.st(c, name=L.FA, size=8.5, color=L.MUTED, bg=L.CREAM, border=L.CREAM, h="right",
+         v="center")
 
-    ws.merge_cells("A2:K2")
-    c = ws["A2"]
-    c.value = cfg["head"]
-    C.st(c, name=L.FA, size=9.5, color=L.MUTED, bg=L.CREAM, border=L.CREAM, h="right")
-    ws.row_dimensions[2].height = 22
+    ws.merge_cells("I1:K2")
+    c = ws["I1"]
+    c.value = cfg["hdr"]
+    C.st(c, name=L.FA_T, size=16, bold=True, color=L.WHITE, bg=L.FOREST, border=L.FOREST,
+         h="center", v="center")
+    ws.merge_cells("I3:K3")
+    c = ws["I3"]
+    c.value = "SALES INVOICE" if mode == "sale" else "PURCHASE INVOICE"
+    C.st(c, name=L.EN, size=8.5, bold=True, color=L.WHITE, bg=L.FOREST_2, border=L.FOREST_2,
+         h="center", v="center")
+    for r_ in (1, 2, 3):
+        ws.row_dimensions[r_].height = 24
 
-    # ---------------------------------------------------------------- info
+    # thin gold rule under the letterhead
     ws.merge_cells("A4:K4")
     c = ws["A4"]
+    c.value = ""
+    C.st(c, name=L.FA, bg=L.GOLD, border=L.GOLD, h="center")
+    ws.row_dimensions[4].height = 5
+    _stamp(ws, COMPANY.get("seal"))
+
+    # ---------------------------------------------------------------- info
+    ws.merge_cells("A5:K5")
+    c = ws["A5"]
     c.value = "   مشخصات فاکتور"
     C.st(c, name=L.FA, size=10.5, bold=True, color=L.WHITE, bg=L.GOLD, border=L.GOLD, h="right")
 
-    labels = [("A5", "شماره فاکتور"), ("C5", "تاریخ فاکتور"), ("E5", cfg["party"]),
-              ("G5", cfg["party_name"]), ("I5", "گروه / نوع")]
+    labels = [("A6", "شماره فاکتور"), ("C6", "تاریخ فاکتور"), ("E6", cfg["party"]),
+              ("G6", cfg["party_name"]), ("I6", "گروه / نوع")]
     for ref, text in labels:
         C.put(ws, ref, text, name=L.FA, size=8.5, bold=True, color=L.MUTED, bg=L.SAND2,
               border=L.LINE, h="center")
 
-    ws.merge_cells("A6:B6")
-    ws["A6"] = "=$O$7"
-    ws.merge_cells("C6:D6")
-    ws["C6"] = "=$O$8"
-    ws["E6"] = "=$O$2"
-    ws.merge_cells("G6:H6")
-    ws["G6"] = '=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G$259,2,0),"کد ناشناخته"))'
-    ws.merge_cells("I6:K6")
-    ws["I6"] = '=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G$259,3,0),""))'
-    for ref in ("A6", "C6", "E6", "G6", "I6"):
+    ws.merge_cells("A7:B7")
+    ws["A7"] = "=$O$7"
+    ws.merge_cells("C7:D7")
+    ws["C7"] = "=$O$8"
+    ws["E7"] = "=$O$2"
+    ws.merge_cells("G7:H7")
+    ws["G7"] = '=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G$259,2,0),"کد ناشناخته"))'
+    ws.merge_cells("I7:K7")
+    ws["I7"] = '=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G$259,3,0),""))'
+    for ref in ("A7", "C7", "E7", "G7", "I7"):
         C.st(ws[ref], name=L.FA, size=10.5, bold=True, color=L.FOREST, bg=L.MINT,
              border=L.LINE, h="center")
 
@@ -331,13 +395,18 @@ def build(path, mode="sale", index=None):
     for ref, txt in ((ws.cell(sr, 1), cfg["sign_r"]), (ws.cell(sr, 7), cfg["sign_l"])):
         C.st(ref, name=L.FA, size=9.5, bold=True, color=L.MUTED, bg=L.CREAM,
              border=L.LINE, h="center")
-    ws.row_dimensions[sr].height = 44
+    ws.row_dimensions[sr].height = 62
+
+    if mode == "sale":
+        _sign_seal(ws, COMPANY.get("seal"), f"C{sr}")
+    else:
+        _sign_seal(ws, COMPANY.get("seal"), f"G{sr}")
 
     fr = sr + 1
     ws.merge_cells(start_row=fr, start_column=1, end_row=fr, end_column=11)
     c = ws.cell(fr, 1)
-    c.value = ("برای چاپ: درصد افت و ضایعات کل را در کادرهای بیرون چاپ (N/O) تنظیم کنید؛ "
-               "همین صفحه با Ctrl+P آماده چاپ A4 است.")
+    c.value = ("این فاکتور خودکار از ثبت روزانه ساخته شده است  ·  تغییر درصد افت و ضایعات "
+               "در کادرهای بیرون چاپ (ستون N/O)  ·  Ctrl+P برای چاپ A4")
     C.st(c, name=L.FA, size=8.5, color=L.MUTED, bg=L.SAND, border=L.SAND, h="center")
 
     # ------------------------------------------------------------ controls
@@ -396,7 +465,7 @@ def build(path, mode="sale", index=None):
     ws.page_setup.orientation = "portrait"
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     ws.page_setup.fitToWidth = 1
-    ws.page_setup.fitToHeight = 0
+    ws.page_setup.fitToHeight = 1          # one A4 page, letterhead to signature
     ws.print_options.horizontalCentered = True
     ws.oddHeader.left.text = "مازندشت — " + cfg["hdr"]
     ws.oddHeader.center.text = ("MAZANDASHT · " +

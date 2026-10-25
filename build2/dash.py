@@ -28,10 +28,11 @@ POST_ROWS = 280      # Post!A13..A292
 
 BOOK_COLS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
 BOOK_SRC = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
-POST_SRC = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]
+POST_SRC = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "P", "N"]
 
 TEXT_COLS_F1 = {0, 1, 2, 3, 4, 5, 9, 13, 14}       # date, doc, source, account, desc, product, op, group
-TEXT_COLS_F2 = {0, 1, 2, 3, 4, 5, 6, 7, 11}
+TEXT_COLS_F2 = {0, 1, 2, 3, 4, 5, 6, 7, 11, 12}
+WIDE_COLS_F2 = {12, 13}          # always written, so new bank rows still reach the reports
 
 
 # ---------------------------------------------------------------- feed sheets
@@ -160,9 +161,10 @@ def sheet_f1(wb, k, values):
 def sheet_f2(wb, k, values):
     ws = wb.add_worksheet("F2")
     ws.hide()
-    k.setup(ws, 11, 9 + POST_ROWS, landscape=True)
+    k.setup(ws, 13, 9 + POST_ROWS, landscape=True)
     for i, h in enumerate(["تاریخ", "سند", "منبع", "حساب", "نام", "گروه", "عملیات",
-                           "بانک", "بدهکار", "بستانکار", "ماه", "شرح"]):
+                           "بانک", "بدهکار", "بستانکار", "ماه", "شرح",
+                           "طبقه‌بندی", "بانک؟"]):
         ws.write(8, i, h, k.f(font_name=FA, font_size=8, bold=True, font_color=WHITE,
                               bg_color=FOREST_2, align="center"))
     for i in range(POST_ROWS):
@@ -172,10 +174,11 @@ def sheet_f2(wb, k, values):
             ref = f"{col}{ref_row}"
             val = values.get((col, ref), 0)
             if c in TEXT_COLS_F2:
-                if not val:
+                if not val and c not in WIDE_COLS_F2:
                     continue
                 ws.write_formula(r, c, f"='[{BANK}]Post'!{ref}",
-                                 k.f(font_name=FA, font_size=8, align="right"), str(val))
+                                 k.f(font_name=FA, font_size=8, align="right"),
+                                 str(val) if val else "")
             else:
                 ws.write_formula(r, c, f"='[{BANK}]Post'!{ref}",
                                  k.f(font_name=EN, font_size=8, num_format=INT,
@@ -669,7 +672,16 @@ def sheet_help(wb, k):
             ("b", "Banks مانده هر بانک را از دفتر تراکنش‌ها می‌سازد: مانده اولیه + دریافت − پرداخت."),
             ("b", "Parties مانده باغداران، بارفروشان و باسکول‌های دیگران را نشان می‌دهد."),
         ]),
-        ("۰۶", "چاپ", [
+        ("۰۶", "شیت Cls — گزارش طبقه ↔ زیرطبقه", [
+            ("p", "هر تراکنش بانکی در 02_Bank دو برچسب دارد: «طبقه» (کشوی اول) و «زیرطبقه» "
+                  "(کشوی دوم). این شیت همان دو را از دفتر بانک (Post) می‌خواند."),
+            ("b", "ردیف‌های طوسی «جمع طبقه» هستند و در جمع کل فقط یک‌بار حساب می‌شوند."),
+            ("b", "برای دیدن اعداد تازه، 02_Bank را ذخیره کنید، بعد این فایل را باز کنید و "
+                  "Update Links بزنید."),
+            ("b", "فهرست طبقه‌ها و زیرطبقه‌ها در 00_Master ← شیت Cls تعریف می‌شود؛ طبقه یا "
+                  "زیرطبقه جدید را همان‌جا اضافه کنید."),
+        ]),
+        ("۰۷", "چاپ", [
             ("p", "همه شیت‌ها A4، راست‌به‌چپ، با سربرگ/فوتر و در عرض یک صفحه تنظیم شده‌اند."),
         ]),
     ]
@@ -727,8 +739,182 @@ def sheet_sync(wb, k, banks, growers, buyers, bd, groups):
     return ws
 
 
+# =======================================================================  Cls
+def sheet_cls(wb, k, classes):
+    """Two-level report: every category (طبقه) with its sub-categories, live
+    from the bank ledger (F2 mirrors Post)."""
+    ws = wb.add_worksheet("Cls")
+    last = 13
+    order = []
+    for parent, _title, _scope in classes:
+        if parent not in order:
+            order.append(parent)
+    kids = {p: [c for c in classes if c[0] == p] for p in order}
+
+    plan = []
+    row = 13                                   # 0-based; Excel row 14 (head = row 13)
+    for parent in order:
+        plan.append((parent, row, len(kids[parent])))
+        row += 1 + len(kids[parent])
+    total_row = row
+    k.setup(ws, last, total_row + 26, landscape=True, repeat=(13, 13), freeze=(14, 3))
+    k.brand(ws, last, "گزارش تجمیعی طبقه ↔ زیرطبقه",
+            "پول شرکت در هر طبقه و زیرطبقه چقدر وارد و چقدر خارج شده است؟ "
+            "منبع: دفتر بانک (Post)", icon="list")
+    k.kpis(ws, 6, [
+        ("جمع واریز", f'=SUMIFS(F2!$J${F2_FIRST}:$J${F2_LAST},'
+                      f'F2!$N${F2_FIRST}:$N${F2_LAST},"<>1")', INT, GREEN, "transfer"),
+        ("جمع برداشت", f'=SUMIFS(F2!$I${F2_FIRST}:$I${F2_LAST},'
+                       f'F2!$N${F2_FIRST}:$N${F2_LAST},"<>1")', INT, TERRA, "transfer"),
+        ("خالص جریان", f'=$D$8-$F$8', INT_RED, FOREST, "money"),
+        ("ردیف‌های طبقه‌بندی‌شده", f'=COUNTIFS(F2!$M${F2_FIRST}:$M${F2_LAST},"<>",'
+                                  f'F2!$N${F2_FIRST}:$N${F2_LAST},"<>1")', INT, GOLD, "list"),
+    ], last)
+    k.section(ws, 11, last, "۰۱", "ریز طبقه ↔ زیرطبقه",
+              "ردیف‌های طوسی، جمع هر طبقه اند  ·  واریز = پول وارد شده، برداشت = پول خارج شده")
+    heads = [("زیرطبقه", "Sub-category", 26), ("طبقه", "Category", 22),
+             ("تعداد", "Count", 9), ("واریز", "In", 15), ("برداشت", "Out", 15),
+             ("مانده", "Net", 15), ("سهم برداشت", "Share", 9), ("نمودار", "Bar", 12)]
+    for i, (fa, en, w) in enumerate(heads):
+        ws.set_column(i, i, w)
+        ws.write(12, i, f"{fa}\n{en}",
+                 k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
+                    bg_color=FOREST, border=1, border_color=FOREST, align="center",
+                    valign="vcenter", text_wrap=True))
+    ws.set_row(12, 30)
+
+    lab = k.f(font_name=FA, font_size=9, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+              align="right", valign="vcenter")
+    par = k.f(font_name=FA, font_size=9.5, bold=True, font_color=FOREST, bg_color=MINT,
+              border=1, border_color=SAGE, align="right", valign="vcenter")
+    par_n = k.f(font_name=EN, font_size=9, bold=True, font_color=FOREST, bg_color=MINT,
+                border=1, border_color=SAGE, align="center", num_format=INT, valign="vcenter")
+    cnt = k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+              align="center", num_format=INT, valign="vcenter")
+    in_f = k.f(font_name=EN, font_size=9, bg_color=MINT, border=1, border_color=LINE_SOFT,
+               align="center", num_format=INT, valign="vcenter")
+    out_f = k.f(font_name=EN, font_size=9, bg_color=BLUSH, border=1, border_color=LINE_SOFT,
+                align="center", num_format=INT, valign="vcenter")
+    net_f = k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM, border=1,
+                border_color=LINE_SOFT, align="center", num_format=INT_RED,
+                valign="vcenter")
+    pct = k.f(font_name=EN, font_size=8.5, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+              align="center", num_format=PCT, valign="vcenter")
+    bar = k.f(font_name=EN, font_size=7, font_color=GOLD, bg_color=WHITE, align="right",
+              valign="vcenter")
+
+    span = f"$E${total_row + 1}"
+    for parent, r0, n_kid in plan:
+        # ---- parent row
+        ws.write_string(r0, 0, parent, par)
+        ws.write_string(r0, 1, "جمع طبقه", par)
+        first, last_r = r0 + 1, r0 + n_kid
+        ws.write_formula(r0, 2, f"=SUM($C${first + 1}:$C${last_r + 1})", par_n)
+        ws.write_formula(r0, 3, f"=SUM($D${first + 1}:$D${last_r + 1})", par_n)
+        ws.write_formula(r0, 4, f"=SUM($E${first + 1}:$E${last_r + 1})", par_n)
+        ws.write_formula(r0, 5, f"=$D{r0 + 1}-$E{r0 + 1}", par_n)
+        ws.write_formula(r0, 6, f"=IFERROR($E{r0 + 1}/MAX(1,{span}),0)",
+                         k.f(font_name=EN, font_size=8.5, bold=True, font_color=FOREST,
+                             bg_color=MINT, border=1, border_color=SAGE, align="center",
+                             num_format=PCT, valign="vcenter"))
+        ws.write_string(r0, 7, "▬▬▬", k.f(font_name=EN, font_size=7, font_color=SAGE,
+                                           bg_color=MINT, border=1, border_color=SAGE,
+                                           align="center", valign="vcenter"))
+        # ---- children
+        for j, (p_, title, scope) in enumerate(kids[parent]):
+            r = first + j
+            ws.write_string(r, 0, title, lab)
+            ws.write_string(r, 1, "  └ " + scope, k.f(
+                font_name=FA, font_size=8.5, font_color=MUTED, bg_color=WHITE, border=1,
+                border_color=LINE_SOFT, align="right", valign="vcenter"))
+            ws.write_formula(r, 2, f'=COUNTIFS(F2!$M${F2_FIRST}:$M${F2_LAST},$A{r + 1},'
+                                   f'F2!$N${F2_FIRST}:$N${F2_LAST},"<>1")', cnt)
+            ws.write_formula(r, 3, f'=SUMIFS(F2!$J${F2_FIRST}:$J${F2_LAST},'
+                                   f'F2!$M${F2_FIRST}:$M${F2_LAST},$A{r + 1},'
+                                   f'F2!$N${F2_FIRST}:$N${F2_LAST},"<>1")', in_f)
+            ws.write_formula(r, 4, f'=SUMIFS(F2!$I${F2_FIRST}:$I${F2_LAST},'
+                                   f'F2!$M${F2_FIRST}:$M${F2_LAST},$A{r + 1},'
+                                   f'F2!$N${F2_FIRST}:$N${F2_LAST},"<>1")', out_f)
+            ws.write_formula(r, 5, f"=$D{r + 1}-$E{r + 1}", net_f)
+            ws.write_formula(r, 6, f"=IFERROR($E{r + 1}/MAX(1,{span}),0)", pct)
+            ws.write_formula(r, 7, f'=REPT("█",MIN(12,ROUND($E{r + 1}/'
+                                   f'MAX(1,MAX($E$14:$E${total_row}))*12,0)))', bar)
+        ws.set_row(r0, 22)
+
+    # ---- total
+    tr = total_row
+    ws.merge_range(tr, 0, tr, 1, "جمع کل", k.f(font_name=FA, font_size=10, bold=True,
+                                               font_color=WHITE, bg_color=GOLD, border=1,
+                                               align="center", valign="vcenter"))
+    for c_ in (2, 3, 4, 5):
+        letter = chr(65 + c_)
+        formula = ('=SUMIF($B$14:$B$%d,"جمع طبقه",%s$14:%s$%d)'
+                   % (total_row, letter, letter, total_row))
+        ws.write_formula(tr, c_, formula,
+                         k.f(font_name=EN, font_size=9.5, bold=True, font_color=WHITE,
+                             bg_color=GOLD, border=1, num_format=INT, align="center",
+                             valign="vcenter"))
+    ws.write_string(tr, 6, "۱۰۰٪", k.f(font_name=EN, font_size=9, bold=True,
+                                        font_color=WHITE, bg_color=GOLD, border=1,
+                                        align="center"))
+    ws.write_blank(tr, 7, None, k.f(bg_color=GOLD, border=1))
+
+    # ---- note + print geometry
+    note_row = total_row + 2
+    k.note(ws, note_row, last,
+           "این گزارش از ستون «طبقه‌بندی» دفتر بانک (Post) می‌خواند؛ یعنی هر تراکنشی که در "
+           "02_Bank ثبت شود، خودکار در طبقه و زیرطبقه خودش جمع می‌شود. ردیف‌های طوسی جمع هر "
+           "طبقه‌اند و در جمع کل فقط یک‌بار حساب می‌شوند.", bg=SAND, icon="flag")
+
+    # ---- §02 : one row per category + chart
+    s0 = note_row + 3
+    ws.write(s0 - 1, 9, "۰۲  جمع هر طبقه", k.f(font_name=FA, font_size=9.5, bold=True,
+                                            font_color=WHITE, bg_color=TERRA, border=1,
+                                            align="center", valign="vcenter"))
+    for i, (fa, w) in enumerate((("طبقه", 22), ("واریز", 15), ("برداشت", 15), ("مانده", 15))):
+        ws.set_column(9 + i, 9 + i, w)
+        ws.write(s0, 9 + i, fa, k.f(font_name=FA, font_size=8.5, bold=True, font_color=WHITE,
+                                    bg_color=FOREST_2, border=1, border_color=FOREST_2,
+                                    align="center", valign="vcenter"))
+    for i, (parent, r0, _n) in enumerate(plan):
+        r = s0 + 1 + i
+        ws.write_formula(r, 9, f"=$A${r0 + 1}", k.f(font_name=FA, font_size=8.5,
+                                                     bg_color=SAND_2, border=1,
+                                                     border_color=LINE, align="right",
+                                                     valign="vcenter"))
+        ws.write_formula(r, 10, f"=$D${r0 + 1}", k.f(font_name=EN, font_size=8.5,
+                                                      bg_color=MINT, border=1,
+                                                      border_color=LINE_SOFT, align="center",
+                                                      num_format=INT, valign="vcenter"))
+        ws.write_formula(r, 11, f"=$E${r0 + 1}", k.f(font_name=EN, font_size=8.5,
+                                                      bg_color=BLUSH, border=1,
+                                                      border_color=LINE_SOFT, align="center",
+                                                      num_format=INT, valign="vcenter"))
+        ws.write_formula(r, 12, f"=$F${r0 + 1}", k.f(font_name=EN, font_size=8.5, bold=True,
+                                                      bg_color=CREAM, border=1,
+                                                      border_color=LINE_SOFT, align="center",
+                                                      num_format=INT_RED, valign="vcenter"))
+    first_s, last_s = s0 + 1, s0 + len(plan)
+    ch = wb.add_chart({"type": "bar"})
+    ch.add_series({"name": "برداشت", "categories": ["Cls", first_s, 9, last_s, 9],
+                   "values": ["Cls", first_s, 11, last_s, 11], "fill": {"color": TERRA},
+                   "gap": 45,
+                   "data_labels": {"value": True, "num_format": "#,##0", "font": {"size": 6}}})
+    ch.add_series({"name": "واریز", "categories": ["Cls", first_s, 9, last_s, 9],
+                   "values": ["Cls", first_s, 10, last_s, 10], "fill": {"color": SAGE},
+                   "gap": 45})
+    ch.set_title({"name": "واریز و برداشت هر طبقه", "name_font": {"name": FA, "size": 10}})
+    ch.set_legend({"position": "bottom", "font": {"name": FA, "size": 8}})
+    ch.set_plotarea({"fill": {"color": "#FCFAF4"}})
+    ch.set_size({"width": 540, "height": 300})
+    ws.insert_chart(f"K{s0}", ch, {"x_offset": 6, "y_offset": 4})
+    ws.print_area(0, 0, max(total_row, last_s + 6), last)
+
+    return ws
+
+
 def build(master_path, bank_path, entry_path, out_path, feed_values=None):
-    acc, banks, growers, buyers, bd, groups = read_master(master_path)
+    acc, banks, growers, buyers, bd, groups, cls = read_master(master_path)
     vals = feed_values or {}
     wb = xlsxwriter.Workbook(out_path, {"default_format_properties": {
         "font_name": FA, "font_size": 10}})
@@ -742,6 +928,7 @@ def build(master_path, bank_path, entry_path, out_path, feed_values=None):
     sheet_time(wb, k)
     sheet_ops(wb, k, vals.get("ops") or [])
     sheet_parties(wb, k, growers, buyers, bd)
+    sheet_cls(wb, k, cls or [("سایر", "سایر", "شرکتی")])
     sheet_prod(wb, k, vals.get("F1") or {})
     sheet_f1(wb, k, vals.get("F1") or {})
     sheet_f2(wb, k, vals.get("F2") or {})
@@ -778,8 +965,17 @@ def read_master(path):
         g = grp.cell(r, 1).value
         if g and g not in groups:
             groups.append(g)
+    cls = []
+    if "Cls" in wb.sheetnames:
+        cs = wb["Cls"]
+        for r in range(10, 400):
+            title = cs.cell(r, 3).value
+            if not title:
+                continue
+            cls.append((str(cs.cell(r, 2).value or "سایر"), str(title),
+                        str(cs.cell(r, 4).value or "شرکتی")))
     wb.close()
     growers = [(c, n) for c, n, g in rows if g == "باغدار"][:10]
     buyers = [(c, n) for c, n, g in rows if g == "بارفروش"][:5]
     bd = [(c, n) for c, n, g in rows if g == "باسکول دیگران"][:5]
-    return rows, banks, growers, buyers, bd, groups
+    return rows, banks, growers, buyers, bd, groups, cls
