@@ -18,44 +18,48 @@ NR = 5000         # transaction rows  (12 .. 12+NR-1)
 PN = NR * 2       # journal lines     (2 per transaction)
 NCHQ = 300        # cheque rows
 
-BANK_OPS = [
-    # title, direction, party mode, fixed party, note
-    ("دریافت از مشتری", "IN", "CODE", "", "واریز مشتری به حساب شرکت — طرف حساب را با کد وارد کنید"),
-    ("پرداخت به مشتری", "OUT", "CODE", "", "پرداخت/حواله شرکت به طرف حساب"),
-    ("دریافت نقدی و واریز به بانک", "IN", "FIXED", "X003", "پول نقد از صندوق به بانک می‌رود"),
-    ("پرداخت هزینه", "OUT", "CODE", "", "هزینه‌ها: حمل، دستمزد، کارمزد، مالیات…"),
-    ("انتقال داخلی بین بانک‌ها", "TRF", "NONE", "", "فقط جابه‌جایی بین بانک‌های خود شرکت؛ تراز شرکت تغییر نمی‌کند"),
-    ("پرداخت انعام مصطفی", "OUT", "FIXED", "X001", "بدهی انعام مصطفی تسویه می‌شود"),
-    ("دریافت هزینه باسکول دیگران", "IN", "PICK", "", "پول از طرف باسکول دیگران؛ در حساب همان شخص بستانکار می‌شود"),
-    ("پرداخت به باسکول دیگران", "OUT", "PICK", "", "تسویه با شخص باسکول دیگران"),
-    ("واریز پز باسکول (۲۰۰۶)", "IN", "FIXED", "X011", "سرجمع پز روز قبل؛ حساب واسط X011 را تسویه می‌کند (درآمد در دفتر روزنامه ثبت شده)"),
-    ("پاس چک (پرداخت چک)", "OUT", "FIXED", "X010", "چک پرداختی پاس می‌شود"),
-    ("برگشت چک دریافتی", "IN", "FIXED", "X010", "چک دریافتی برگشت خورد"),
-    ("واریز چک به حساب", "IN", "FIXED", "X010", "چک دریافتی وصول شد"),
-    ("دریافت تسهیلات", "IN", "CODE", "", "وام/تسهیلات بانکی"),
-    ("بازپرداخت تسهیلات", "OUT", "CODE", "", "قسط یا اصل وام"),
-    ("سایر دریافت", "IN", "CODE", "", ""),
-    ("سایر پرداخت", "OUT", "CODE", "", ""),
-    ("تسویه دریافت (واسط)", "IN", "FIXED", "X011", "واریزی‌ای که قبلاً در شیت پرداخت (Pay) ثبت شده؛ واسط X011 را صفر می‌کند"),
-    ("تسویه پرداخت (واسط)", "OUT", "FIXED", "X011", "پرداختی که قبلاً در شیت پرداخت (Pay) ثبت شده؛ واسط X011 را صفر می‌کند"),
-]
-
 DEMO = [
-    ("1405/07/01", "TB-001", "واریز پز باسکول (۲۰۰۶)", "BN02", "", "کارت/پوز", "", "واریز سرجمع پز ۱۴۰۵/۰۶/۳۱", "", 120000000),
-    ("1405/07/01", "TB-002", "دریافت از مشتری", "BN01", "", "انتقال بانکی", "C001", "علی‌الحساب خرید مرکبات", "TR-8841", 150000000),
-    ("1405/07/02", "TB-003", "پرداخت انعام مصطفی", "BN02", "", "کارت/پوز", "", "انعام هفته اول", "", 5000000),
-    ("1405/07/02", "TB-004", "انتقال داخلی بین بانک‌ها", "BN01", "BN03", "انتقال بانکی", "", "تقویت حساب ملت", "TR-8842", 200000000),
-    ("1405/07/03", "TB-005", "پرداخت به مشتری", "BN03", "", "حواله", "C002", "تسویه بخشی از حساب باغدار", "TR-8843", 60000000),
-    ("1405/07/03", "TB-006", "دریافت هزینه باسکول دیگران", "BN02", "", "کارت/پوز", "", "هزینه باسکول میدان بار", "", 1500000, "BD001 – باسکول میدان بار (نمونه)"),
-    ("1405/07/04", "TB-007", "واریز پز باسکول (۲۰۰۶)", "BN02", "", "کارت/پوز", "", "واریز پز ۱۴۰۵/۰۷/۰۳", "", 95000000),
-    ("1405/07/05", "TB-008", "پرداخت هزینه", "BN01", "", "انتقال بانکی", "X012", "هزینه حمل و تخلیه", "", 12000000),
-    ("1405/07/06", "TB-009", "پاس چک (پرداخت چک)", "BN01", "", "پاس چک", "", "چک ۴۵۲۱ به تأمین‌کننده", "4521", 40000000),
-    ("1405/07/07", "TB-010", "دریافت از مشتری", "BN03", "", "انتقال بانکی", "C003", "واریز بابت فاکتور بار", "TR-8844", 88000000),
-    ("1405/07/08", "TB-011", "دریافت نقدی و واریز به بانک", "BN01", "", "نقد", "", "واریز نقدی صندوق", "", 25000000),
-    ("1405/07/09", "TB-012", "پرداخت به مشتری", "BN02", "", "کارت/پوز", "S001", "پرداخت به فروشنده سبد", "", 33000000),
-    ("1405/07/10", "TB-013", "واریز پز باسکول (۲۰۰۶)", "BN02", "", "کارت/پوز", "", "واریز پز ۱۴۰۵/۰۷/۰۹", "", 76000000),
-    ("1405/07/11", "TB-014", "پرداخت به باسکول دیگران", "BN02", "", "کارت/پوز", "", "تسویه با باسکول میدان بار", "", 1000000, "BD001 – باسکول میدان بار (نمونه)"),
-    ("1405/07/12", "TB-015", "سایر دریافت", "BN03", "", "انتقال بانکی", "C005", "دریافت متفرقه", "", 9500000),
+    ("1405/07/01", "TB-001", "واریز پز باسکول (۲۰۰۶)", "BN02", "", "کارت/پوز", "",
+     "واریز سرجمع پز ۱۴۰۵/۰۶/۳۱", "", 120000000, "", "فروش مرکبات"),
+    ("1405/07/01", "TB-002", "دریافت از مشتری", "BN01", "", "انتقال بانکی", "C001",
+     "علی‌الحساب خرید مرکبات", "TR-8841", 150000000, "", "فروش مرکبات"),
+    ("1405/07/02", "TB-003", "پرداخت انعام مصطفی", "BN02", "", "کارت/پوز", "",
+     "انعام هفته اول", "", 5000000, "", "انعام مصطفی"),
+    ("1405/07/02", "TB-004", "انتقال داخلی بین بانک‌ها", "BN01", "BN03", "انتقال بانکی", "",
+     "تقویت حساب ملت", "TR-8842", 200000000, "", "انتقال بین حساب‌های شرکت"),
+    ("1405/07/03", "TB-005", "پرداخت به باغدار", "BN03", "", "حواله", "C002",
+     "تسویه بخشی از حساب باغدار", "TR-8843", 60000000, "", "پرداخت به باغدار"),
+    ("1405/07/03", "TB-006", "دریافت هزینه باسکول دیگران", "BN02", "", "کارت/پوز", "",
+     "هزینه باسکول میدان بار", "", 1500000, "BD001 – باسکول میدان بار (نمونه)",
+     "هزینه باسکول دیگران"),
+    ("1405/07/04", "TB-007", "واریز پز باسکول (۲۰۰۶)", "BN02", "", "کارت/پوز", "",
+     "واریز پز ۱۴۰۵/۰۷/۰۳", "", 95000000, "", "فروش مرکبات"),
+    ("1405/07/05", "TB-008", "پرداخت هزینه", "BN01", "", "انتقال بانکی", "X012",
+     "هزینه حمل و تخلیه", "", 12000000, "", "حمل و تخلیه"),
+    ("1405/07/06", "TB-009", "پاس چک ما (چک پرداختی شرکت)", "BN01", "", "پاس چک", "",
+     "چک ۴۵۲۱ بابت تعمیر دستگاه سورتینگ", "4521", 40000000, "",
+     "تعمیر و نگهداری دستگاه سورتینگ"),
+    ("1405/07/07", "TB-010", "واریز بارفروشان", "BN03", "", "انتقال بانکی", "C003",
+     "واریز بابت فاکتور بار", "TR-8844", 88000000, "", "واریز بارفروشان"),
+    ("1405/07/08", "TB-011", "واریز نقدی به حساب", "BN01", "", "نقد", "",
+     "واریز نقدی صندوق", "", 25000000, "", "سایر درآمد"),
+    ("1405/07/09", "TB-012", "پرداخت به مشتری", "BN02", "", "کارت/پوز", "S001",
+     "پرداخت به فروشنده سبد", "", 33000000, "", "خرید سبد"),
+    ("1405/07/10", "TB-013", "واریز پز باسکول (۲۰۰۶)", "BN02", "", "کارت/پوز", "",
+     "واریز پز ۱۴۰۵/۰۷/۰۹", "", 76000000, "", "فروش مرکبات"),
+    ("1405/07/11", "TB-014", "پرداخت به باسکول دیگران", "BN02", "", "کارت/پوز", "",
+     "تسویه با باسکول میدان بار", "", 1000000, "BD001 – باسکول میدان بار (نمونه)",
+     "تسویه باسکول دیگران"),
+    ("1405/07/12", "TB-015", "سایر دریافت", "BN03", "", "انتقال بانکی", "C005",
+     "دریافت متفرقه", "", 9500000, "", "سایر درآمد"),
+    ("1405/07/08", "TB-016", "پرداخت به حساب شخصی رئیس", "BN01", "", "کارت/پوز", "",
+     "خرید لوازم خانگی شخصی", "", 18000000, "", "خرید وسایل شخصی"),
+    ("1405/07/10", "TB-017", "پرداخت به حساب شخصی رئیس", "BN03", "", "انتقال بانکی", "",
+     "سرویس و لاستیک خودرو شخصی", "", 9500000, "", "سوخت و تعمیر خودرو شخصی"),
+    ("1405/07/12", "TB-018", "دریافت از حساب شخصی رئیس", "BN02", "", "کارت/پوز", "",
+     "برگشت پول شخصی رئیس به شرکت", "", 12000000, "", "برگشت وجه شخصی به شرکت"),
+    ("1405/07/13", "TB-019", "کارمزد و هزینه بانکی", "BN01", "", "انتقال بانکی", "",
+     "کارمزد ماهانه حساب", "", 450000, "", "کارمزد بانکی"),
 ]
 
 CHEQUES = [
@@ -72,7 +76,7 @@ def master_data(path):
     wb = openpyxl.load_workbook(path)
     acc = []
     ws = wb["Acc"]
-    for r in range(10, 260):
+    for r in range(10, 300):
         code = ws.cell(r, 1).value
         if not code:
             continue
@@ -96,10 +100,32 @@ def master_data(path):
     return acc, banks, gl, bd
 
 
+def read_classes(master_path):
+    """Classification table (00_Master → Cls); falls back to the built-in list."""
+    try:
+        wb = openpyxl.load_workbook(master_path, read_only=True)
+    except Exception:
+        return list(CLASSES)
+    if "Cls" not in wb.sheetnames:
+        wb.close()
+        return list(CLASSES)
+    ws = wb["Cls"]
+    out = []
+    for r in range(10, 400):
+        title = ws.cell(r, 2).value
+        if not title:
+            continue
+        out.append((str(ws.cell(r, 1).value or f"TC{r-9:02d}"), str(title),
+                    str(ws.cell(r, 3).value or "شرکتی"), str(ws.cell(r, 4).value or "سایر حساب")))
+    wb.close()
+    return out or list(CLASSES)
+
+
 # =====================================================================  Sync
-def sheet_sync(wb, k, acc, banks, gl, bd):
+def sheet_sync(wb, k, acc, banks, gl, bd, classes=()):
     ws = wb.add_worksheet("Sync")
-    k.setup(ws, 12, 262, landscape=True, repeat=(8, 9), freeze=(9, 3))
+    k.setup(ws, 28, max(262, 12 + len(classes or CLASSES)), landscape=True,
+              repeat=(8, 9), freeze=(9, 3))
     ws.set_column(0, 0, 11)
     ws.set_column(1, 1, 34)
     ws.set_column(2, 2, 15)
@@ -124,10 +150,10 @@ def sheet_sync(wb, k, acc, banks, gl, bd):
     ws.set_column(21, 21, 22)
     ws.set_column(22, 22, 34)
 
-    ws.merge_range(0, 0, 0, 22, "داده‌های ثابت — کپی قفل‌شده از فایل مادر 00_Master.xlsx",
+    ws.merge_range(0, 0, 0, 28, "داده‌های ثابت — کپی قفل‌شده از فایل مادر 00_Master.xlsx",
                    k.f(font_name=FA_TITLE, font_size=15, bold=True, font_color=FOREST,
                        bg_color=SAND_2, align="right", valign="vcenter"))
-    ws.merge_range(1, 0, 1, 22,
+    ws.merge_range(1, 0, 1, 28,
                    "این شیت فقط مطالعه است. هر کشوی این فایل از همین‌جا می‌خواند؛ برای تغییر، فایل مادر را ویرایش کنید و این فایل را دوباره بسازید.",
                    k.f(font_name=FA, font_size=9.5, font_color=MUTED, align="right",
                        valign="vcenter", text_wrap=True))
@@ -176,7 +202,7 @@ def sheet_sync(wb, k, acc, banks, gl, bd):
 
     # ---- bank operations N..S rows 10..25
     head(8, 13, 18, "نوع عملیات بانکی — قاعده بدهکار/بستانکار", "BANK OPERATIONS", FOREST_2)
-    for i, (title, direction, mode, fixed, note) in enumerate(BANK_OPS):
+    for i, (title, direction, mode, fixed, note) in enumerate(TXN_OPS):
         r = 9 + i
         ws.write(r, 13, title, f_t)
         ws.write(r, 14, direction, f_c)
@@ -201,6 +227,18 @@ def sheet_sync(wb, k, acc, banks, gl, bd):
     head(8, 23, 23, "نوع چک", "CHEQUE TYPE", GOLD)
     for i, m in enumerate(["دریافتی", "پرداختی"]):
         ws.write(9 + i, 23, m, f_t)
+
+    # ---- classifications Y..AC  (title, code, scope, group, note)
+    for c_, w in ((24, 34), (25, 8), (26, 13), (27, 22), (28, 40)):
+        ws.set_column(c_, c_, w)
+    head(8, 24, 28, "طبقه‌بندی تراکنش — ماهیت و دامنه", "TRANSACTION CLASSES", TERRA)
+    for i, (code, title, scope, group) in enumerate(classes or CLASSES):
+        r = 9 + i
+        ws.write(r, 24, title, f_t)
+        ws.write(r, 25, code, f_c)
+        ws.write(r, 26, scope, f_c)
+        ws.write(r, 27, group, f_t)
+        ws.write(r, 28, "", f_t)
     head(8, 22, 22, "گروه‌های حساب", "GROUPS", GOLD)
     for i, g in enumerate(gl[:24]):
         ws.write(9 + i, 22, g, f_t)
@@ -209,10 +247,17 @@ def sheet_sync(wb, k, acc, banks, gl, bd):
     wb.define_name("BankTbl", "=Sync!$A$10:$F$19")
     wb.define_name("BankAccts", "=Sync!$D$10:$D$19")
     wb.define_name("ListBanks", "=Sync!$A$10:$A$19")
-    wb.define_name("AcctTbl", "=Sync!$H$10:$L$259")
-    wb.define_name("ListAllCodes", "=Sync!$H$10:$H$259")
-    wb.define_name("BankOpTbl", "=Sync!$N$10:$S$27")
-    wb.define_name("ListBankOps", "=Sync!$N$10:$N$27")
+    n_acc = 9 + len(acc)
+    wb.define_name("AcctTbl", f"=Sync!$H$10:$L${n_acc}")
+    wb.define_name("ListAllCodes", f"=Sync!$H$10:$H${n_acc}")
+    wb.define_name("ListAcctNames", f"=Sync!$I$10:$I${n_acc}")
+    n_ops = 9 + len(TXN_OPS)
+    n_cls = 9 + len(classes or CLASSES)
+    wb.define_name("BankOpTbl", f"=Sync!$N$10:$S${n_ops}")
+    wb.define_name("ListTxnOps", f"=Sync!$N$10:$N${n_ops}")
+    wb.define_name("ListBankOps", f"=Sync!$N$10:$N${n_ops}")
+    wb.define_name("ClassTbl", f"=Sync!$Y$10:$AC${n_cls}")
+    wb.define_name("ListClasses", f"=Sync!$Y$10:$Y${n_cls}")
     wb.define_name("ListPayMethods", "=Sync!$T$10:$T$14")
     wb.define_name("ListChequeStatus", "=Sync!$U$10:$U$13")
     wb.define_name("ListOtherScales", "=Sync!$V$10:$V$29")
@@ -225,63 +270,200 @@ def sheet_sync(wb, k, acc, banks, gl, bd):
 
 
 # =====================================================================  Txn
-COLS = [
-    ("ردیف", "No.", 6, "شماره خودکار ردیف؛ با پر شدن تاریخ ساخته می‌شود."),
-    ("تاریخ", "Date", 11, "تاریخ شمسی به شکل 1405/07/10. فقط عدد وارد کنید؛ اسلش‌ها را خودتان بزنید."),
-    ("شماره سند", "Doc", 11, "شماره پیگیری یا شماره سند داخلی؛ آزاد."),
-    ("نوع عملیات", "Operation", 24, "از کشو انتخاب کنید. جهت بدهکار/بستانکار و حساب طرف از همین انتخاب تعیین می‌شود."),
-    ("بانک عامل", "Company bank", 20, "بانک شرکت که پول از آن خارج یا به آن وارد می‌شود (برای انتقال داخلی: بانک مبدأ)."),
-    ("بانک مقصد", "Destination", 18, "فقط در «انتقال داخلی» پر می‌شود: بانکی که پول به آن واریز می‌شود."),
-    ("روش", "Method", 13, "نقد، چک، انتقال بانکی، کارت/پوز یا حواله."),
-    ("کد طرف حساب", "Party code", 13, "کد را تایپ کنید (مثل C001 یا X012)؛ نام و گروه خودکار می‌آید. برای باسکول دیگران این ستون را خالی بگذارید."),
-    ("نام طرف حساب", "Party name", 22, "خودکار از فایل مادر."),
-    ("گروه", "Group", 14, "خودکار؛ برای گزارش‌های تحلیلی."),
-    ("شرح", "Description", 26, "توضیح کوتاه؛ در گزارش‌ها دیده می‌شود."),
-    ("شماره پیگیری / چک", "Ref / Cheque", 14, "شماره پیگیری حواله، چک یا فیش."),
-    ("مبلغ (ریال)", "Amount", 15, "مبلغ کامل تراکنش؛ بدهکار و بستانکار خودکار از آن ساخته می‌شود."),
-    ("شخص باسکول دیگران", "Other scale", 22, "فقط برای عملیات باسکول دیگران: شخص را از کشو انتخاب کنید تا بدهی‌اش قابل ردیابی شود."),
-    ("بدهکار بانک", "Bank Dr", 14, "خودکار: پول وارد حساب بانک شده است."),
-    ("بستانکار بانک", "Bank Cr", 14, "خودکار: پول از حساب بانک خارج شده است."),
-    ("بدهکار طرف", "Party Dr", 13, "خودکار: طرف حساب/بانک مقصد بدهکار می‌شود."),
-    ("بستانکار طرف", "Party Cr", 13, "خودکار: طرف حساب بستانکار می‌شود."),
-    ("وضعیت", "Status", 12, "✓ یعنی ردیف کامل و قابل ثبت است؛ ⚠ یعنی چیزی جا افتاده."),
-    ("یادداشت", "Note", 22, "هر توضیح اضافه."),
+
+CLASSES = [
+    # (code, title, scope, group)
+    ("TC01", "خرید مرکبات", "شرکتی", "باغدار"),
+    ("TC02", "فروش مرکبات", "شرکتی", "بارفروش"),
+    ("TC03", "واریز بارفروشان", "شرکتی", "بارفروش"),
+    ("TC04", "دریافتی از مشتری", "شرکتی", "بارفروش"),
+    ("TC05", "پرداخت به باغدار", "شرکتی", "باغدار"),
+    ("TC06", "خرید سبد", "شرکتی", "فروشنده سبد"),
+    ("TC07", "فروش سبد", "شرکتی", "فروشنده سبد"),
+    ("TC08", "حمل و تخلیه", "شرکتی", "سایر حساب"),
+    ("TC09", "کارمزد بانکی", "شرکتی", "سایر حساب"),
+    ("TC10", "قبض آب، برق و گاز", "شرکتی", "سایر حساب"),
+    ("TC11", "حقوق و دستمزد", "شرکتی", "کارمند"),
+    ("TC12", "بیمه تأمین اجتماعی", "شرکتی", "کارمند"),
+    ("TC13", "تعمیر و نگهداری دستگاه سورتینگ", "شرکتی", "سایر حساب"),
+    ("TC14", "تعمیر و نگهداری خط بسته‌بندی", "شرکتی", "سایر حساب"),
+    ("TC15", "تعمیر و نگهداری سردخانه", "شرکتی", "سایر حساب"),
+    ("TC16", "قطعات و لوازم یدکی", "شرکتی", "سایر حساب"),
+    ("TC17", "سوخت و انرژی", "شرکتی", "سایر حساب"),
+    ("TC18", "اجاره انبار و زمین", "شرکتی", "سایر حساب"),
+    ("TC19", "انعام مصطفی", "شرکتی", "سایر حساب"),
+    ("TC20", "هزینه باسکول دیگران", "شرکتی", "باسکول دیگران"),
+    ("TC21", "تسویه باسکول دیگران", "شرکتی", "باسکول دیگران"),
+    ("TC22", "اقساط و تسهیلات", "شرکتی", "وام و تسهیلات"),
+    ("TC23", "دریافت تسهیلات", "شرکتی", "وام و تسهیلات"),
+    ("TC24", "مالیات و عوارض", "شرکتی", "سایر حساب"),
+    ("TC25", "سرمایه و آورده صاحبان", "شرکتی", "سرمایه و آورده صاحبان"),
+    ("TC26", "انتقال بین حساب‌های شرکت", "شرکتی", "سایر حساب"),
+    ("TC27", "سایر درآمد", "شرکتی", "سایر حساب"),
+    ("TC28", "سایر هزینه", "شرکتی", "سایر حساب"),
+    ("TC29", "هزینه شخصی رئیس", "شخصی رئیس", "سایر حساب"),
+    ("TC30", "خرید وسایل شخصی", "شخصی رئیس", "سایر حساب"),
+    ("TC31", "فروش وسایل شخصی", "شخصی رئیس", "سایر حساب"),
+    ("TC32", "خرید خودرو", "شخصی رئیس", "سایر حساب"),
+    ("TC33", "فروش خودرو", "شخصی رئیس", "سایر حساب"),
+    ("TC34", "سوخت و تعمیر خودرو شخصی", "شخصی رئیس", "سایر حساب"),
+    ("TC35", "مسکن و قبض منزل", "شخصی رئیس", "سایر حساب"),
+    ("TC36", "درمان و سلامت", "شخصی رئیس", "سایر حساب"),
+    ("TC37", "تحصیل و آموزش", "شخصی رئیس", "سایر حساب"),
+    ("TC38", "سفر و تفریح", "شخصی رئیس", "سایر حساب"),
+    ("TC39", "هدیه و نذورات", "شخصی رئیس", "سایر حساب"),
+    ("TC40", "دریافتی شخصی", "شخصی رئیس", "سایر حساب"),
+    ("TC41", "واریز از حساب شرکت به شخصی", "شخصی رئیس", "سایر حساب"),
+    ("TC42", "برگشت وجه شخصی به شرکت", "شخصی رئیس", "سایر حساب"),
+]
+
+TXN_OPS = [
+    # title, direction, party mode, fixed party, note  (the "nature" of the payment)
+    ("واریز نقدی به حساب", "IN", "FIXED", "X003", "پول نقد از صندوق به بانک می‌رود"),
+    ("دریافت از مشتری", "IN", "CODE", "", "واریز مشتری به حساب شرکت — کد حساب را بزنید"),
+    ("واریز بارفروشان", "IN", "CODE", "", "واریزی بارفروش بابت بار تحویلی"),
+    ("پاس چک مشتریان (واریز به حساب ما)", "IN", "CODE", "", "چک دریافتی از مشتری وصول و به حساب ما واریز شد"),
+    ("انتقال دریافتی از حساب دیگر", "IN", "CODE", "", "انتقال بانکی ورودی"),
+    ("واریز پز باسکول (۲۰۰۶)", "IN", "FIXED", "X011", "سرجمع پز روز قبل؛ حساب واسط X011 تسویه می‌شود"),
+    ("دریافت هزینه باسکول دیگران", "IN", "PICK", "", "هزینه باسکول دیگران؛ شخص را از ستون آخر انتخاب کنید"),
+    ("دریافت تسهیلات", "IN", "CODE", "", "وام/تسهیلات بانکی"),
+    ("سود سپرده", "IN", "FIXED", "X015", "سود سپرده بانکی"),
+    ("سایر دریافت", "IN", "CODE", "", ""),
+    ("پرداخت به باغدار", "OUT", "CODE", "", "پرداخت بابت خرید مرکبات"),
+    ("پرداخت به مشتری", "OUT", "CODE", "", "پرداخت/حواله شرکت به طرف حساب"),
+    ("پاس چک ما (چک پرداختی شرکت)", "OUT", "FIXED", "X010", "چک صادرشده توسط شرکت پاس می‌شود"),
+    ("برداشت نقدی از حساب", "OUT", "FIXED", "X003", "برداشت نقدی برای صندوق"),
+    ("انتقال پرداختی به حساب دیگر", "OUT", "CODE", "", "انتقال بانکی خروجی"),
+    ("کارمزد و هزینه بانکی", "OUT", "FIXED", "X012", "کارمزد، آبونمان و هزینه‌های بانکی"),
+    ("پرداخت هزینه", "OUT", "CODE", "", "هزینه‌ها: حمل، دستمزد، قبض، تعمیر…"),
+    ("پرداخت انعام مصطفی", "OUT", "FIXED", "X001", "بدهی انعام مصطفی تسویه می‌شود"),
+    ("پرداخت به باسکول دیگران", "OUT", "PICK", "", "تسویه با شخص باسکول دیگران"),
+    ("بازپرداخت تسهیلات", "OUT", "CODE", "", "قسط یا اصل وام"),
+    ("پاس چک مشتری برگشتی", "OUT", "CODE", "", "چک مشتری برگشت خورد و از حساب کسر شد"),
+    ("سایر پرداخت", "OUT", "CODE", "", ""),
+    ("پرداخت به حساب شخصی رئیس", "OUT", "FIXED", "X021",
+     "پول از حساب شرکت به مصرف شخصی رئیس می‌رود؛ هزینه شرکت نیست"),
+    ("دریافت از حساب شخصی رئیس", "IN", "FIXED", "X021",
+     "برگشت پول شخصی رئیس به حساب شرکت"),
+    ("انتقال داخلی بین بانک‌ها", "TRF", "NONE", "", "جابه‌جایی بین بانک‌های خود شرکت؛ فقط بانک مقصد را هم انتخاب کنید"),
+    ("تسویه دریافت (واسط)", "IN", "FIXED", "X011", "واریزی‌ای که قبلاً در شیت پرداخت (Pay) ثبت شده؛ واسط X011 را صفر می‌کند"),
+    ("تسویه پرداخت (واسط)", "OUT", "FIXED", "X011", "پرداختی که قبلاً در شیت پرداخت (Pay) ثبت شده؛ واسط X011 را صفر می‌کند"),
+]
+
+TXN_COLS = [
+    ("ردیف", "No.", 6,
+     "شماره خودکار ردیف؛ با پر شدن تاریخ ساخته می‌شود."),
+    ("نوع\nواریز / برداشت", "Type", 11,
+     "خودکار از ستون «جزئیات عملیات» ساخته می‌شود: واریز = پول به حساب آمد، "
+     "برداشت = پول از حساب رفت، انتقال = بین دو بانک خودمان. رنگ ردیف هم از همین می‌آید."),
+    ("کد حساب", "Account code", 13,
+     "کد را از کشو انتخاب کنید؛ نام و گروه خودکار می‌آید. اگر فقط نام را می‌دانید، "
+     "در شیت Home کادر «جستجوی حساب» را ببینید: نام را انتخاب کنید و کدش را همان‌جا نشان می‌دهد."),
+    ("نام حساب", "Account name", 24,
+     "خودکار از فایل مادر. اگر «کد ناشناخته» دیدید یعنی این کد در 00_Master تعریف نشده است."),
+    ("جزئیات عملیات", "Operation detail", 30,
+     "ماهیت پرداخت: پاس چک ما، پاس چک مشتریان، واریز نقدی، برداشت، کارمزد، انتقال داخلی… "
+     "همین ستون تعیین می‌کند واریز است یا برداشت و پول از کدام حساب طرف حساب می‌خورد."),
+    ("طبقه‌بندی", "Category", 26,
+     "این پول برای چه کاری بود؟ خرید مرکبات، فروش مرکبات، قبض، حقوق، تعمیر و نگهداری، "
+     "یا هزینه شخصی رئیس. فهرستش در فایل مادر (شیت Cls) تعریف شده و قابل افزودن است."),
+    ("دامنه", "Scope", 12,
+     "خودکار: «شرکتی» یا «شخصی رئیس». پول شخصی رئیس از حساب شرکت می‌گذرد ولی هزینه شرکت نیست؛ "
+     "در شیت Personal جدا گزارش می‌شود."),
+    ("تاریخ", "Date", 11,
+     "تاریخ شمسی به شکل 1405/07/10."),
+    ("سند / پیگیری", "Doc / Ref", 13,
+     "شماره سند داخلی یا شماره پیگیری حواله/فیش."),
+    ("بانک عامل", "Bank", 20,
+     "بانک شرکت که پول از آن خارج یا به آن وارد می‌شود (برای انتقال داخلی: بانک مبدأ)."),
+    ("بانک مقصد", "Destination", 16,
+     "فقط در «انتقال داخلی» پر می‌شود: بانکی که پول به آن واریز می‌شود."),
+    ("روش", "Method", 12,
+     "نقد، چک، انتقال بانکی، کارت/پوز یا حواله."),
+    ("مبلغ (ریال)", "Amount", 15,
+     "مبلغ کامل تراکنش؛ بدهکار و بستانکار خودکار از آن ساخته می‌شود."),
+    ("شرح", "Description", 26,
+     "توضیح کوتاه؛ در دفتر بانک و گزارش‌ها دیده می‌شود."),
+    ("بدهکار بانک", "Bank Dr", 12, "خودکار: پول وارد حساب بانک شده است."),
+    ("بستانکار بانک", "Bank Cr", 12, "خودکار: پول از حساب بانک خارج شده است."),
+    ("شخص باسکول دیگران", "Other scale", 20,
+     "فقط برای عملیات باسکول دیگران: شخص را انتخاب کنید تا بدهی‌اش در شیت Payable ردیابی شود."),
+    ("وضعیت", "Status", 11,
+     "✓ یعنی ردیف کامل است؛ ⚠ یعنی چیزی جا افتاده (مبلغ، بانک، طبقه‌بندی یا کد حساب)."),
+    ("یادداشت", "Note", 20, "هر توضیح اضافه."),
 ]
 
 
 def sheet_txn(wb, k):
     ws = wb.add_worksheet("Txn")
-    last = len(COLS) - 1
+    last = len(TXN_COLS) - 1          # 18 = S
     k.setup(ws, last, 12 + NR + 2, landscape=True, repeat=(11, 11), freeze=(12, 4))
-    k.brand(ws, last, "تراکنش‌های بانکی — ثبت، کنترل و ردیابی",
-            "بانک عامل را از کشو انتخاب کنید  ·  کد طرف حساب را تایپ کنید  ·  انتقال داخلی: بانک مبدأ و مقصد",
-            icon="bank")
+    k.brand(ws, last, "دفتر تراکنش‌های بانکی — واریز، برداشت و ردیابی",
+            "از راست: ردیف ← نوع خودکار ← کد حساب ← نام خودکار ← جزئیات عملیات ← طبقه‌بندی  ·  "
+            "رنگ ردیف با ماهیت پرداخت تغییر می‌کند", icon="bank")
     k.kpis(ws, 6, [
-        ("تعداد تراکنش", f'=COUNTA($B$13:$B${12+NR})', INT, FOREST, "list"),
-        ("جمع دریافت", f'=SUM($O$13:$O${12+NR})', INT, GREEN, "transfer"),
-        ("جمع پرداخت", f'=SUM($P$13:$P${12+NR})', INT, RED, "transfer"),
-        ("مانده جریان", f'=SUM($O$13:$O${12+NR})-SUM($P$13:$P${12+NR})', INT_RED, BLUE, "money"),
-        ("ردیف‌های ناقص", f'=COUNTIF($S$13:$S${12+NR},"⚠*")', INT, TERRA, "warn"),
+        ("تعداد تراکنش", f'=COUNTA($H$13:$H${12+NR})', INT, FOREST, "list"),
+        ("جمع واریز", f'=SUM($O$13:$O${12+NR})', INT, GREEN, "transfer"),
+        ("جمع برداشت", f'=SUM($P$13:$P${12+NR})', INT, RED, "transfer"),
+        ("خالص جریان", f'=SUM($O$13:$O${12+NR})-SUM($P$13:$P${12+NR})', INT_RED, BLUE, "money"),
+        ("ردیف‌های ناقص", f'=COUNTIF($R$13:$R${12+NR},"⚠*")', INT, TERRA, "warn"),
     ], last)
 
-    k.note(ws, 8, last,
-           "بانک عامل همیشه از فهرست بانک‌های شرکت انتخاب می‌شود. ستون‌های خاکستری خودکارند و دست نزنید. "
-           "برای انتقال داخلی، بانک مقصد را هم انتخاب کنید تا پول از یک حساب کم و به حساب دیگر اضافه شود.",
-           bg=SAND, icon="flag")
+    # colour legend
+    legend = [("واریز — پول وارد حساب شد", MINT, GREEN),
+              ("برداشت — پول از حساب رفت", BLUSH, TERRA),
+              ("انتقال داخلی — فقط جابه‌جایی بین بانک‌های خودمان", LAVENDER, BLUE)]
+    c = 0
+    for text, bg, fg in legend:
+        span = max(2, (last + 1) // 3)
+        ws.merge_range(8, c, 8, min(c + span - 1, last), "     " + text,
+                       k.f(font_name=FA, font_size=9, bold=True, font_color=fg,
+                           bg_color=bg, align="right", valign="vcenter",
+                           border=1, border_color=WHITE))
+        c += span
+    ws.set_row(8, 24)
 
-    k.section(ws, 10, last, "۰۱", "دفتر تراکنش‌ها", "هر ردیف یک تراکنش بانکی")
-    k.thead(ws, 11, COLS, FOREST)
+    # ---- name → code finder (row 10): type/choose the account name, get the code
+    ws.merge_range(9, 1, 9, 3, "   کد حساب را نمی‌دانید؟ نام حساب را از کشو انتخاب کنید:",
+                   k.f(font_name=FA, font_size=9, bold=True, font_color=FOREST,
+                       bg_color=MINT, align="right", valign="vcenter",
+                       border=1, border_color=SAGE))
+    ws.write_blank(9, 4, None, k.f(font_name=FA, font_size=9, bold=True, bg_color="#FFF4D6",
+                                   border=1, border_color=GOLD_L, align="right",
+                                   valign="vcenter"))
+    ws.data_validation(9, 4, 9, 4, {"validate": "list", "source": "=ListAcctNames",
+                                    "input_title": "پیدا کردن کد از نام",
+                                    "input_message": "نام حساب را انتخاب کنید؛ کدش کنارش نوشته می‌شود.",
+                                    "error_title": "نام حساب", "error_message": "از فهرست انتخاب کنید."})
+    ws.merge_range(9, 5, 9, 7,
+                   '=IF($E$10="","کد: —","کد: "&IFERROR(INDEX(Sync!$H$10:$H$300,'
+                   'MATCH($E$10,Sync!$I$10:$I$300,0)),"پیدا نشد"))',
+                   k.f(font_name=FA, font_size=9, bold=True, font_color=BLUE,
+                       bg_color="#EEF3F8", align="center", valign="vcenter",
+                       border=1, border_color=WHITE))
+    ws.set_row(9, 22)
+
+    k.section(ws, 10, last, "۰۱", "دفتر تراکنش‌ها",
+              "ستون‌های طلایی را پر کنید؛ ستون‌های خاکستری خودکارند")
+    k.thead(ws, 11, TXN_COLS, FOREST)
+    ws.set_row(11, 40)
 
     f_in = k.f(font_name=EN, font_size=9, bg_color="#FFF4D6", border=1,
                border_color=GOLD_L, align="center", valign="vcenter")
     f_in_t = k.f(font_name=FA, font_size=9.5, bg_color="#FFF4D6", border=1,
                  border_color=GOLD_L, align="right", valign="vcenter")
+    f_in_n = k.f(font_name=EN, font_size=9.5, bg_color="#FFF4D6", border=1,
+                 border_color=GOLD_L, align="center", valign="vcenter", num_format=INT)
     f_auto = k.f(font_name=EN, font_size=8.5, bg_color="#F6F5F0", border=1,
                  border_color=LINE_SOFT, align="center", valign="vcenter")
     f_auto_t = k.f(font_name=FA, font_size=9, bg_color="#F6F5F0", border=1,
                    border_color=LINE_SOFT, align="right", valign="vcenter")
     f_auto_n = k.f(font_name=EN, font_size=9, bg_color="#F6F5F0", border=1,
                    border_color=LINE_SOFT, align="center", valign="vcenter", num_format=INT)
+    f_type = k.f(font_name=FA, font_size=9.5, bold=True, bg_color="#F6F5F0", border=1,
+                 border_color=LINE_SOFT, align="center", valign="vcenter")
+    f_scope = k.f(font_name=FA, font_size=8.5, bg_color="#F6F5F0", border=1,
+                  border_color=LINE_SOFT, align="center", valign="vcenter")
     f_status = k.f(font_name=FA, font_size=9, bold=True, bg_color=CREAM, border=1,
                    border_color=LINE_SOFT, align="center", valign="vcenter")
 
@@ -289,120 +471,152 @@ def sheet_txn(wb, k):
         r = 12 + i
         x = r + 1
         ws.set_row(r, 21)
-        ws.write_formula(r, 0, f'=IF($B{x}="","",COUNTA($B$13:$B{x}))', f_auto)
-        ws.write_blank(r, 1, None, f_in)
-        ws.write_blank(r, 2, None, f_in)
-        ws.write_blank(r, 3, None, f_in_t)
-        ws.write_blank(r, 4, None, f_in_t)
-        ws.write_blank(r, 5, None, f_in_t)
-        ws.write_blank(r, 6, None, f_in)
-        ws.write_blank(r, 7, None, f_in)
-        ws.write_formula(r, 8, f'=IF($H{x}="","",IFERROR(VLOOKUP($H{x},AcctTbl,2,0),"کد ناشناخته"))', f_auto_t)
-        ws.write_formula(r, 9, f'=IF($H{x}="","",IFERROR(VLOOKUP($H{x},AcctTbl,3,0),""))', f_auto)
-        ws.write_blank(r, 10, None, f_in_t)
-        ws.write_blank(r, 11, None, f_in)
-        ws.write_blank(r, 12, None, k.f(font_name=EN, font_size=9, bg_color="#FFF4D6",
-                                        border=1, border_color=GOLD_L, align="center",
-                                        valign="vcenter", num_format=INT))
-        ws.write_blank(r, 13, None, f_in_t)
-        ws.write_formula(r, 14, f'=IF($B{x}="",0,IF($U{x}="IN",N($M{x}),0))', f_auto_n)
-        ws.write_formula(r, 15, f'=IF($B{x}="",0,IF(OR($U{x}="OUT",$U{x}="TRF"),N($M{x}),0))', f_auto_n)
-        ws.write_formula(r, 16, f'=IF($B{x}="",0,IF(OR($U{x}="OUT",$U{x}="TRF"),N($M{x}),0))', f_auto_n)
-        ws.write_formula(r, 17, f'=IF($B{x}="",0,IF($U{x}="IN",N($M{x}),0))', f_auto_n)
+        ws.write_formula(r, 0, f'=IF($H{x}="","",COUNTA($H$13:$H{x}))', f_auto)
+        ws.write_formula(r, 1,
+                         f'=IF($E{x}="","",IF($T{x}="TRF","انتقال",IF($T{x}="IN","واریز","برداشت")))',
+                         f_type)
+        ws.write_blank(r, 2, None, f_in)                    # C code (input)
+        ws.write_formula(r, 3,
+                         f'=IF($C{x}="","",IFERROR(VLOOKUP($C{x},AcctTbl,2,0),"کد ناشناخته"))',
+                         f_auto_t)
+        ws.write_blank(r, 4, None, f_in_t)                  # E operation detail
+        ws.write_blank(r, 5, None, f_in_t)                  # F classification
+        ws.write_formula(r, 6,
+                         f'=IF($F{x}="","",IFERROR(VLOOKUP($F{x},ClassTbl,3,0),"شرکتی"))', f_scope)
+        ws.write_blank(r, 7, None, f_in)                    # H date
+        ws.write_blank(r, 8, None, f_in)                    # I doc
+        ws.write_blank(r, 9, None, f_in_t)                  # J bank
+        ws.write_blank(r, 10, None, f_in_t)                 # K dest
+        ws.write_blank(r, 11, None, f_in)                   # L method
+        ws.write_blank(r, 12, None, f_in_n)                 # M amount
+        ws.write_blank(r, 13, None, f_in_t)                 # N desc
+        ws.write_formula(r, 14, f'=IF($H{x}="",0,IF($T{x}="IN",N($M{x}),0))', f_auto_n)
+        ws.write_formula(r, 15,
+                         f'=IF($H{x}="",0,IF(OR($T{x}="OUT",$T{x}="TRF"),N($M{x}),0))', f_auto_n)
+        ws.write_blank(r, 16, None, f_in_t)                 # Q other scale person
         ws.write_formula(
-            r, 18,
-            f'=IF($B{x}="","",IF($M{x}="","⚠ مبلغ",IF($E{x}="","⚠ بانک عامل",'
-            f'IF(AND($U{x}="TRF",$F{x}=""),"⚠ بانک مقصد",'
-            f'IF(AND($V{x}<>"NONE",$V{x}<>"",$Z{x}=""),"⚠ طرف حساب","✓")))))', f_status)
-        ws.write_blank(r, 19, None, f_in_t)
-        # hidden helpers
-        ws.write_formula(r, 20, f'=IFERROR(VLOOKUP($D{x},BankOpTbl,2,0),"")', f_auto)
-        ws.write_formula(r, 21, f'=IFERROR(VLOOKUP($D{x},BankOpTbl,3,0),"")', f_auto)
-        ws.write_formula(r, 22, f'=IFERROR(VLOOKUP($D{x},BankOpTbl,4,0),"")', f_auto)
-        ws.write_formula(r, 23, f'=IF($E{x}="","",IFERROR(VLOOKUP($E{x},BankTbl,4,0),""))', f_auto)
-        ws.write_formula(r, 24, f'=IF($F{x}="","",IFERROR(VLOOKUP($F{x},BankTbl,4,0),""))', f_auto)
+            r, 17,
+            f'=IF($H{x}="","",IF($M{x}="","⚠ مبلغ",IF($E{x}="","⚠ عملیات",'
+            f'IF($J{x}="","⚠ بانک",IF(AND($T{x}="TRF",$K{x}=""),"⚠ بانک مقصد",'
+            f'IF($F{x}="","⚠ طبقه‌بندی",IF(AND($U{x}<>"NONE",$U{x}<>"",$Y{x}=""),'
+            f'"⚠ کد حساب","✓")))))))', f_status)
+        ws.write_blank(r, 18, None, f_in_t)                 # S note
+
+        # ---------------- hidden helpers T..AC
+        ws.write_formula(r, 19, f'=IFERROR(VLOOKUP($E{x},BankOpTbl,2,0),"")', f_auto)   # T dir
+        ws.write_formula(r, 20, f'=IFERROR(VLOOKUP($E{x},BankOpTbl,3,0),"")', f_auto)   # U mode
+        ws.write_formula(r, 21, f'=IFERROR(VLOOKUP($E{x},BankOpTbl,4,0),"")', f_auto)   # V fixed
+        ws.write_formula(r, 22,
+                         f'=IF($J{x}="","",IFERROR(VLOOKUP($J{x},BankTbl,4,0),""))', f_auto)  # W
+        ws.write_formula(r, 23,
+                         f'=IF($K{x}="","",IFERROR(VLOOKUP($K{x},BankTbl,4,0),""))', f_auto)  # X
         ws.write_formula(
-            r, 25,
-            f'=IF($B{x}="","",IF($V{x}="PICK",LEFT($N{x},5),IF($V{x}="FIXED",$W{x},'
-            f'IF($V{x}="CODE",$H{x},""))))', f_auto)
+            r, 24,
+            f'=IF($H{x}="","",IF($U{x}="PICK",LEFT($Q{x},5),IF($U{x}="FIXED",$V{x},'
+            f'IF($U{x}="CODE",$C{x},""))))', f_auto)                                     # Y party
+        ws.write_formula(r, 25,
+                         f'=IF($F{x}="","",IFERROR(VLOOKUP($F{x},ClassTbl,3,0),"شرکتی"))', f_auto)
+        ws.write_formula(r, 26,
+                         f'=IF($F{x}="","",IFERROR(VLOOKUP($F{x},ClassTbl,4,0),""))', f_auto)
+        ws.write_formula(r, 27,
+                         f'=IF($H{x}="",0,IF(OR($T{x}="OUT",$T{x}="TRF"),N($M{x}),0))', f_auto_n)
+        ws.write_formula(r, 28,
+                         f'=IF($H{x}="",0,IF($T{x}="IN",N($M{x}),0))', f_auto_n)
+        ws.write_formula(r, 29,
+                         f'=IF($H{x}="","",IFERROR(VALUE(MID($H{x},6,2)),0))', f_auto)
 
-    for c, w in ((20, 7), (21, 8), (22, 9), (23, 10), (24, 10), (25, 11)):
-        ws.set_column(c, c, w)
-        ws.set_column(c, c, w, None, {"hidden": True})
+    for c_, w in ((19, 6), (20, 8), (21, 8), (22, 9), (23, 9), (24, 10), (25, 12),
+                  (26, 10), (27, 12), (28, 12), (29, 6)):
+        ws.set_column(c_, c_, w)
+        ws.set_column(c_, c_, w, None, {"hidden": True})
 
-    # demo rows
+    # demo rows: (date, doc, op, bank, dest, method, code, desc, ref, amount, person, class)
     for i, row in enumerate(DEMO):
         r = 12 + i
         date, doc, op, bank, dest, method, code, desc, ref, amount = row[:10]
-        bd = row[10] if len(row) > 10 else ""
-        ws.write_string(r, 1, date, f_in)
-        ws.write_string(r, 2, doc, f_in)
-        ws.write_string(r, 3, op, f_in_t)
-        ws.write_string(r, 4, bank, f_in_t)
+        person = row[10] if len(row) > 10 else ""
+        cls = row[11] if len(row) > 11 else ""
+        ws.write_string(r, 7, date, f_in)
+        ws.write_string(r, 8, doc, f_in)
+        ws.write_string(r, 4, op, f_in_t)
+        ws.write_string(r, 9, bank, f_in_t)
         if dest:
-            ws.write_string(r, 5, dest, f_in_t)
-        ws.write_string(r, 6, method, f_in)
+            ws.write_string(r, 10, dest, f_in_t)
+        ws.write_string(r, 11, method, f_in)
         if code:
-            ws.write_string(r, 7, code, f_in)
-        ws.write_string(r, 10, desc, f_in_t)
+            ws.write_string(r, 2, code, f_in)
+        if cls:
+            ws.write_string(r, 5, cls, f_in_t)
+        ws.write_string(r, 13, desc, f_in_t)
+        ws.write_number(r, 12, amount, f_in_n)
+        if person:
+            ws.write_string(r, 16, person, f_in_t)
         if ref:
-            ws.write_string(r, 11, ref, f_in)
-        ws.write_number(r, 12, amount, k.f(font_name=EN, font_size=9, bg_color="#FFF4D6",
-                                           border=1, border_color=GOLD_L, align="center",
-                                           valign="vcenter", num_format=INT))
-        if bd:
-            ws.write_string(r, 13, bd, f_in_t)
+            ws.write_string(r, 18, f"پیگیری: {ref}", f_in_t)
 
     total = 12 + NR
-    ws.merge_range(total, 0, total, 13, "جمع کل",
+    ws.merge_range(total, 0, total, 13, "جمع کل", 
                    k.f(font_name=FA, font_size=10.5, bold=True, font_color=WHITE,
                        bg_color=GOLD, align="center", valign="vcenter", border=1,
                        border_color=GOLD))
-    for c in (14, 15, 16, 17):
-        ws.write_formula(total, c, f"=SUM({chr(65+c)}12:{chr(65+c)}{total-1})",
+    for c_ in (14, 15, 27, 28):
+        ws.write_formula(total, c_, f"=SUM({chr(65+c_)}{12}:{chr(65+c_)}{total-1})",
                          k.f(font_name=EN, font_size=10, bold=True, font_color=WHITE,
                             bg_color=GOLD, align="center", valign="vcenter", border=1,
                             border_color=GOLD, num_format=INT))
-    ws.write_formula(total, 18, f'=IF(COUNTIF($S$13:$S${total},"⚠*")=0,"✓ تراز","⚠ بررسی")',
+    ws.write_formula(total, 17,
+                     f'=IF(COUNTIF($R$13:$R${total},"⚠*")=0,"✓ همه ردیف‌ها کامل","⚠ بررسی")',
                      k.f(font_name=FA, font_size=10, bold=True, font_color=WHITE,
                         bg_color=GOLD, align="center", valign="vcenter", border=1,
                         border_color=GOLD))
     ws.set_row(total, 24)
 
     # validations
-    ws.data_validation(12, 1, 12 + NR - 1, 1, {
+    ws.data_validation(12, 7, 12 + NR - 1, 7, {
         "validate": "custom",
-        "value": '=OR($B13="",AND(LEN($B13)=10,MID($B13,5,1)="/",MID($B13,8,1)="/"))',
+        "value": '=OR($H13="",AND(LEN($H13)=10,MID($H13,5,1)="/",MID($H13,8,1)="/"))',
         "error_title": "تاریخ شمسی",
         "error_message": "تاریخ را به شکل 1405/07/10 وارد کنید.",
         "error_type": "stop"})
-    ws.data_validation(12, 3, 12 + NR - 1, 3, {"validate": "list", "source": "=ListBankOps",
+    ws.data_validation(12, 4, 12 + NR - 1, 4, {"validate": "list", "source": "=ListTxnOps",
                                                "error_type": "stop"})
-    ws.data_validation(12, 4, 12 + NR - 1, 4, {"validate": "list", "source": "=ListBanks",
+    ws.data_validation(12, 5, 12 + NR - 1, 5, {"validate": "list", "source": "=ListClasses",
+                                               "error_type": "warning"})
+    ws.data_validation(12, 2, 12 + NR - 1, 2, {"validate": "list", "source": "=ListAllCodes",
+                                               "error_type": "warning"})
+    ws.data_validation(12, 9, 12 + NR - 1, 9, {"validate": "list", "source": "=ListBanks",
                                                "error_type": "stop"})
-    ws.data_validation(12, 5, 12 + NR - 1, 5, {"validate": "list", "source": "=ListBanks",
-                                               "error_type": "warning"})
-    ws.data_validation(12, 6, 12 + NR - 1, 6, {"validate": "list", "source": "=ListPayMethods",
-                                               "error_type": "warning"})
-    ws.data_validation(12, 7, 12 + NR - 1, 7, {"validate": "list", "source": "=ListAllCodes",
-                                               "error_type": "warning"})
-    ws.data_validation(12, 13, 12 + NR - 1, 13, {"validate": "list", "source": "=ListOtherScales",
+    ws.data_validation(12, 10, 12 + NR - 1, 10, {"validate": "list", "source": "=ListBanks",
+                                                 "error_type": "warning"})
+    ws.data_validation(12, 11, 12 + NR - 1, 11, {"validate": "list", "source": "=ListPayMethods",
+                                                 "error_type": "warning"})
+    ws.data_validation(12, 16, 12 + NR - 1, 16, {"validate": "list",
+                                                 "source": "=ListOtherScales",
                                                  "error_type": "warning"})
 
-    # colour by direction
+    # colour by direction + type chip
     ws.conditional_format(11, 0, 12 + NR - 1, last, {
-        "type": "formula", "criteria": '=$U12="IN"',
-        "format": k.f(bg_color=MINT)})
+        "type": "formula", "criteria": '=$T12="IN"', "format": k.f(bg_color="#F2FAF4")})
     ws.conditional_format(11, 0, 12 + NR - 1, last, {
-        "type": "formula", "criteria": '=$U12="OUT"',
-        "format": k.f(bg_color=BLUSH)})
+        "type": "formula", "criteria": '=$T12="OUT"', "format": k.f(bg_color="#FDF3F0")})
     ws.conditional_format(11, 0, 12 + NR - 1, last, {
-        "type": "formula", "criteria": '=$U12="TRF"',
-        "format": k.f(bg_color=LAVENDER)})
-    ws.conditional_format(11, 18, 12 + NR - 1, 18, {
+        "type": "formula", "criteria": '=$T12="TRF"', "format": k.f(bg_color="#F4F2FA")})
+    ws.conditional_format(11, 1, 12 + NR - 1, 1, {
+        "type": "formula", "criteria": '=$T12="IN"',
+        "format": k.f(bg_color=MINT, font_color=GREEN, bold=True)})
+    ws.conditional_format(11, 1, 12 + NR - 1, 1, {
+        "type": "formula", "criteria": '=$T12="OUT"',
+        "format": k.f(bg_color="#F8DDD3", font_color=TERRA, bold=True)})
+    ws.conditional_format(11, 1, 12 + NR - 1, 1, {
+        "type": "formula", "criteria": '=$T12="TRF"',
+        "format": k.f(bg_color=LAVENDER, font_color=BLUE, bold=True)})
+    ws.conditional_format(11, 6, 12 + NR - 1, 6, {
+        "type": "text", "criteria": "containing", "value": "شخصی",
+        "format": k.f(bg_color="#FFF1D6", font_color="#9A6B15", bold=True)})
+    ws.conditional_format(11, 17, 12 + NR - 1, 17, {
         "type": "text", "criteria": "containing", "value": "⚠",
         "format": k.f(bg_color="#FBE3D8", font_color=TERRA, bold=True)})
-    ws.conditional_format(11, 18, 12 + NR - 1, 18, {
+    ws.conditional_format(11, 17, 12 + NR - 1, 17, {
         "type": "text", "criteria": "containing", "value": "✓",
         "format": k.f(bg_color=MINT, font_color=GREEN, bold=True)})
     ws.autofilter(10, 0, 12 + NR - 1, last)
@@ -413,9 +627,9 @@ def sheet_txn(wb, k):
 def sheet_post(wb, k):
     ws = wb.add_worksheet("Post")
     ws.hide()
-    k.setup(ws, 13, 12 + PN, landscape=True, freeze=(12, 1))
+    k.setup(ws, 15, 12 + PN, landscape=True, freeze=(12, 1))
     cols = ["تاریخ", "سند", "منبع", "کد حساب", "نام حساب", "گروه", "عملیات", "بانک",
-            "بدهکار", "بستانکار", "ماه", "شرح", "", "بانک؟"]
+            "بدهکار", "بستانکار", "ماه", "شرح", "", "بانک؟", "دامنه", "طبقه‌بندی"]
     for i, h in enumerate(cols):
         ws.write(8, i, h, k.f(font_name=FA, font_size=8, bold=True, font_color=WHITE,
                               bg_color=FOREST, align="center"))
@@ -426,21 +640,21 @@ def sheet_post(wb, k):
         x = 13 + i
         p = 12 + 2 * i
         for j, (row, dr, cr, acct, desc) in enumerate((
-                (p, "O", "P", f"Txn!$X{x}",
-                 f'IF(Txn!$K{x}="","",Txn!$K{x})'),
-                (p + 1, "Q", "R",
-                 f'IF(Txn!$U{x}="TRF",Txn!$Y{x},Txn!$Z{x})',
-                 f'IF(Txn!$K{x}="","","طرف مقابل — "&Txn!$K{x})'))):
-            ws.write_formula(row, 0, f'=IF(Txn!$B{x}="","",Txn!$B{x})', f_t)
-            ws.write_formula(row, 1, f'=IF(Txn!$B{x}="","",Txn!$C{x})', f_t)
-            ws.write_formula(row, 2, f'=IF(Txn!$B{x}="","","تراکنش بانکی")', f_free)
-            ws.write_formula(row, 3, f'=IF(Txn!$B{x}="","",IF({acct}="","",{acct}))', f_t)
+                (p, "O", "P", f"Txn!$W{x}",
+                 f'IF(Txn!$N{x}="","",Txn!$N{x})'),
+                (p + 1, "AB", "AC",
+                 f'IF(Txn!$T{x}="TRF",Txn!$X{x},Txn!$Y{x})',
+                 f'IF(Txn!$N{x}="","","طرف مقابل — "&Txn!$N{x})'))):
+            ws.write_formula(row, 0, f'=IF(Txn!$H{x}="","",Txn!$H{x})', f_t)
+            ws.write_formula(row, 1, f'=IF(Txn!$H{x}="","",Txn!$I{x})', f_t)
+            ws.write_formula(row, 2, f'=IF(Txn!$H{x}="","",$P{row+1}&" · "&$O{row+1})', f_free)
+            ws.write_formula(row, 3, f'=IF(Txn!$H{x}="","",IF({acct}="","",{acct}))', f_t)
             ws.write_formula(row, 4, f'=IF($D{row+1}="","",IFERROR(VLOOKUP($D{row+1},AcctTbl,2,0),""))', f_free)
             ws.write_formula(row, 5, f'=IF($D{row+1}="","",IFERROR(VLOOKUP($D{row+1},AcctTbl,3,0),""))', f_free)
-            ws.write_formula(row, 6, f'=IF(Txn!$B{x}="","",Txn!$D{x})', f_free)
-            ws.write_formula(row, 7, f'=IF(Txn!$B{x}="","",Txn!$E{x})', f_t)
-            ws.write_formula(row, 8, f'=IF(Txn!$B{x}="",0,Txn!${dr}{x})', f_n)
-            ws.write_formula(row, 9, f'=IF(Txn!$B{x}="",0,Txn!${cr}{x})', f_n)
+            ws.write_formula(row, 6, f'=IF(Txn!$H{x}="","",Txn!$E{x})', f_free)
+            ws.write_formula(row, 7, f'=IF(Txn!$H{x}="","",Txn!$J{x})', f_t)
+            ws.write_formula(row, 8, f'=IF(Txn!$H{x}="",0,Txn!${dr}{x})', f_n)
+            ws.write_formula(row, 9, f'=IF(Txn!$H{x}="",0,Txn!${cr}{x})', f_n)
             ws.write_formula(row, 10,
                              f'=IF($A{row+1}="","",IFERROR(VALUE(MID($A{row+1},6,2)),""))',
                              k.f(font_name=EN, font_size=8, num_format="00", align="center",
@@ -450,8 +664,10 @@ def sheet_post(wb, k):
                              f'=IF($D{row+1}="",0,COUNTIF(BankAccts,$D{row+1}))',
                              k.f(font_name=EN, font_size=8, align="center",
                                  bg_color="#F6F5F0"))
-    for c, w in enumerate([11, 11, 14, 11, 26, 14, 24, 11, 14, 14, 7, 28]):
-        ws.set_column(c, c, w)
+            ws.write_formula(row, 14, f'=IF(Txn!$H{x}="","",Txn!$Z{x})', f_free)
+            ws.write_formula(row, 15, f'=IF(Txn!$H{x}="","",Txn!$F{x})', f_free)
+    for c_, w in enumerate([11, 11, 30, 11, 26, 14, 24, 11, 14, 14, 7, 30, 2, 7, 12, 22]):
+        ws.set_column(c_, c_, w)
     return ws
 
 
@@ -626,107 +842,113 @@ def sheet_flow(wb, k):
 def sheet_anal(wb, k):
     ws = wb.add_worksheet("Anal")
     last = 6
-    k.setup(ws, last, 52, landscape=True, repeat=(7, 7), freeze=(10, 1))
+    nops = len(TXN_OPS)
+    k.setup(ws, last, 40 + nops, landscape=True, repeat=(7, 7), freeze=(10, 1))
     k.brand(ws, last, "تحلیل تراکنش‌ها",
-            "بر پایه نوع عملیات، روش پرداخت و طرف حساب  ·  سه مدل تحلیل در یک صفحه", icon="chart")
+            "بر پایه نوع عملیات، روش پرداخت و طرف حساب  ·  همه از دفتر تراکنش‌ها", icon="chart")
+    k.kpis(ws, 6, [
+        ("جمع واریز", f"=SUM(Txn!$O$13:$O${12+NR})", INT, GREEN, "transfer"),
+        ("جمع برداشت", f"=SUM(Txn!$P$13:$P${12+NR})", INT, RED, "transfer"),
+        ("خالص جریان", f"=SUM(Txn!$O$13:$O${12+NR})-SUM(Txn!$P$13:$P${12+NR})", INT_RED, FOREST,
+         "money"),
+        ("سهم شخصی از گردش", f'=IFERROR(SUMIFS(Txn!$M$13:$M${12+NR},Txn!$Z$13:$Z${12+NR},'
+                             f'"شخصی رئیس")/MAX(1,SUM(Txn!$M$13:$M${12+NR})),0)',
+         PCT, GOLD, "people"),
+    ], last)
 
-    k.section(ws, 6, last, "۰۱", "تحلیل بر اساس نوع عملیات", "کدام عملیات بیشترین گردش را دارد؟")
-    heads = [("نوع عملیات", "Operation", 26), ("تعداد", "Count", 9), ("دریافت", "In", 15),
-             ("پرداخت", "Out", 15), ("خالص", "Net", 15), ("سهم پرداخت", "Share", 10),
+    head_f = k.f(font_name=FA, font_size=9.5, bold=True, font_color=WHITE, bg_color=FOREST,
+                 border=1, border_color=FOREST, align="center", valign="vcenter",
+                 text_wrap=True)
+    en_f = k.f(font_name=EN, font_size=6.8, font_color=SAGE_L, bg_color=FOREST, align="center")
+    lab_f = k.f(font_name=FA, font_size=9, bg_color=SAND_2, border=1, border_color=LINE,
+                align="right")
+    in_f = k.f(font_name=EN, font_size=9, bg_color=MINT, border=1, border_color=LINE_SOFT,
+               align="center", num_format=INT)
+    out_f = k.f(font_name=EN, font_size=9, bg_color=BLUSH, border=1, border_color=LINE_SOFT,
+                align="center", num_format=INT)
+    net_f = k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM, border=1,
+                border_color=LINE_SOFT, align="center", num_format=INT_RED)
+    cnt_f = k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+                align="center", num_format=INT)
+    pct_f = k.f(font_name=EN, font_size=8.5, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+                align="center", num_format=PCT)
+    bar_f = k.f(font_name=EN, font_size=7, font_color=GOLD, bg_color=WHITE, align="right")
+
+    # ---------------------------------------------------------------- ۰۱ ops
+    k.section(ws, 8, last, "۰۱", "تحلیل بر اساس جزئیات عملیات", "کدام نوع عملیات بیشترین گردش را دارد؟")
+    heads = [("جزئیات عملیات", "Operation", 30), ("تعداد", "Count", 9), ("واریز", "In", 15),
+             ("برداشت", "Out", 15), ("خالص", "Net", 15), ("سهم برداشت", "Share", 10),
              ("نمودار", "Bar", 8)]
     for i, (fa, en, w) in enumerate(heads):
         ws.set_column(i, i, w)
-        ws.write(7, i, fa, k.f(font_name=FA, font_size=9.5, bold=True, font_color=WHITE,
-                               bg_color=FOREST, border=1, border_color=FOREST, align="center"))
-        ws.write(8, i, en, k.f(font_name=EN, font_size=6.8, font_color=SAGE_L,
-                               bg_color=FOREST, align="center"))
-    for i, (title, *_rest) in enumerate(BANK_OPS):
-        r = 9 + i
-        ws.write_string(r, 0, title, k.f(font_name=FA, font_size=9, bg_color=SAND_2,
-                                         border=1, border_color=LINE, align="right"))
-        ws.write_formula(r, 1, f'=COUNTIF(Txn!$D$13:$D${12+NR},$A{r+1})',
-                         k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 2, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$D$13:$D${12+NR},$A{r+1},'
-                               f'Txn!$U$13:$U${12+NR},"IN")',
-                         k.f(font_name=EN, font_size=9, bg_color=MINT, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 3, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$D$13:$D${12+NR},$A{r+1},'
-                               f'Txn!$U$13:$U${12+NR},"OUT")',
-                         k.f(font_name=EN, font_size=9, bg_color=BLUSH, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 4, f'=$C{r+1}-$D{r+1}',
-                         k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT_RED))
-        ws.write_formula(r, 5, f'=IFERROR($D{r+1}/SUM($D$10:$D$25),0)',
-                         k.f(font_name=EN, font_size=8.5, bg_color=WHITE, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=PCT))
+        ws.write(9, i, fa, head_f)
+        ws.write(10, i, en, en_f)
+    r0 = 11
+    for i, (title, *_rest) in enumerate(TXN_OPS):
+        r = r0 + i
+        ws.write_string(r, 0, title, lab_f)
+        ws.write_formula(r, 1, f'=COUNTIF(Txn!$E$13:$E${12+NR},$A{r+1})', cnt_f)
+        ws.write_formula(r, 2, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$E$13:$E${12+NR},$A{r+1},'
+                               f'Txn!$T$13:$T${12+NR},"IN")', in_f)
+        ws.write_formula(r, 3, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$E$13:$E${12+NR},$A{r+1},'
+                               f'Txn!$T$13:$T${12+NR},"OUT")', out_f)
+        ws.write_formula(r, 4, f'=$C{r+1}-$D{r+1}', net_f)
+        ws.write_formula(r, 5, f'=IFERROR($D{r+1}/MAX(1,SUM($D${r0+1}:$D${r0+nops})),0)', pct_f)
         ws.write_formula(r, 6, f'=REPT("█",MIN(16,ROUND(MAX($C{r+1},$D{r+1})/'
-                               f'MAX(1,MAX($C$10:$C$25),MAX($D$10:$D$25))*16,0)))',
-                         k.f(font_name=EN, font_size=7, font_color=GOLD, bg_color=WHITE,
-                             align="right"))
-
+                               f'MAX(1,MAX($C${r0+1}:$C${r0+nops}),MAX($D${r0+1}:$D${r0+nops}))*16,0)))',
+                         bar_f)
     ch = wb.add_chart({"type": "doughnut"})
     ch.add_series({
-        "name": "پرداخت بر حسب عملیات",
-        "categories": ["Anal", 9, 0, 24, 0],
-        "values": ["Anal", 9, 3, 24, 3],
+        "name": "سهم برداشت",
+        "categories": ["Anal", r0, 0, r0 + nops - 1, 0],
+        "values": ["Anal", r0, 3, r0 + nops - 1, 3],
         "points": [{"fill": {"color": c}} for c in
-                   (FOREST, SAGE, GOLD, TERRA, BLUE, AMBER, "#8E6C88", "#4F7C6C")],
+                   (FOREST, SAGE, GOLD, TERRA, BLUE, AMBER, "#8E6C88", "#4F7C6C",
+                    "#B08968", "#7D8CA3", "#C9ADA7", "#8CB369")],
         "data_labels": {"percentage": True, "font": {"size": 7}},
     })
-    ch.set_title({"name": "سهم هر نوع عملیات از پرداخت‌ها", "name_font": {"name": FA, "size": 10}})
+    ch.set_title({"name": "سهم هر عملیات از برداشت‌ها", "name_font": {"name": FA, "size": 10}})
     ch.set_legend({"position": "right", "font": {"name": FA, "size": 7}})
-    ch.set_size({"width": 380, "height": 250})
-    ws.insert_chart("I8", ch, {"x_offset": 6, "y_offset": 4})
+    ch.set_size({"width": 400, "height": 300})
+    ws.insert_chart("I11", ch, {"x_offset": 6, "y_offset": 4})
 
-    # methods table
-    k.section(ws, 27, last, "۰۲", "تحلیل بر اساس روش پرداخت", "نقد، چک، انتقال، کارت/پوز، حواله")
-    mh = ["روش", "تعداد", "دریافت", "پرداخت", "خالص", "سهم"]
+    # ------------------------------------------------------------ ۰۲ methods
+    m1 = r0 + nops + 2
+    k.section(ws, m1, last, "۰۲", "تحلیل بر اساس روش پرداخت", "نقد، چک، انتقال، کارت/پوز، حواله")
+    mh = ["روش", "تعداد", "واریز", "برداشت", "خالص", "سهم"]
     for i, h in enumerate(mh):
-        ws.write(28, i, h, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
-                               bg_color=FOREST_2, border=1, border_color=FOREST_2,
-                               align="center"))
+        ws.write(m1 + 1, i, h, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
+                                   bg_color=FOREST_2, border=1, border_color=FOREST_2,
+                                   align="center"))
     for i, m in enumerate(["نقد", "چک", "انتقال بانکی", "کارت/پوز", "حواله"]):
-        r = 29 + i
-        ws.write_string(r, 0, m, k.f(font_name=FA, font_size=9, bg_color=SAND_2, border=1,
-                                     border_color=LINE, align="right"))
-        ws.write_formula(r, 1, f'=COUNTIFS(Txn!$G$13:$G${12+NR},$A{r+1})',
-                         k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 2, f'=SUMIFS(Txn!$O$13:$O${12+NR},Txn!$G$13:$G${12+NR},$A{r+1})',
-                         k.f(font_name=EN, font_size=9, bg_color=MINT, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 3, f'=SUMIFS(Txn!$P$13:$P${12+NR},Txn!$G$13:$G${12+NR},$A{r+1})',
-                         k.f(font_name=EN, font_size=9, bg_color=BLUSH, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 4, f'=$C{r+1}-$D{r+1}',
-                         k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT_RED))
-        ws.write_formula(r, 5, f'=IFERROR($D{r+1}/SUM($D$30:$D$34),0)',
-                         k.f(font_name=EN, font_size=8.5, bg_color=WHITE, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=PCT))
+        r = m1 + 2 + i
+        ws.write_string(r, 0, m, lab_f)
+        ws.write_formula(r, 1, f'=COUNTIFS(Txn!$L$13:$L${12+NR},$A{r+1})', cnt_f)
+        ws.write_formula(r, 2, f'=SUMIFS(Txn!$O$13:$O${12+NR},Txn!$L$13:$L${12+NR},$A{r+1})', in_f)
+        ws.write_formula(r, 3, f'=SUMIFS(Txn!$P$13:$P${12+NR},Txn!$L$13:$L${12+NR},$A{r+1})', out_f)
+        ws.write_formula(r, 4, f'=$C{r+1}-$D{r+1}', net_f)
+        ws.write_formula(r, 5, f'=IFERROR($D{r+1}/MAX(1,SUM($D${m1+2}:$D${m1+6})),0)', pct_f)
     ch2 = wb.add_chart({"type": "pie"})
-    ch2.add_series({"name": "روش پرداخت", "categories": ["Anal", 29, 0, 33, 0],
-                    "values": ["Anal", 29, 3, 33, 3],
+    ch2.add_series({"name": "روش پرداخت", "categories": ["Anal", m1 + 2, 0, m1 + 6, 0],
+                    "values": ["Anal", m1 + 2, 3, m1 + 6, 3],
                     "points": [{"fill": {"color": c}} for c in (SAGE, GOLD, FOREST, TERRA, BLUE)],
                     "data_labels": {"percentage": True, "font": {"size": 8}}})
     ch2.set_title({"name": "ترکیب روش‌های پرداخت", "name_font": {"name": FA, "size": 10}})
     ch2.set_legend({"position": "right", "font": {"name": FA, "size": 7}})
-    ch2.set_size({"width": 330, "height": 210})
-    ws.insert_chart("I29", ch2, {"x_offset": 6, "y_offset": 4})
+    ch2.set_size({"width": 340, "height": 230})
+    ws.insert_chart(f"I{m1+2}", ch2, {"x_offset": 6, "y_offset": 4})
 
-    # top counterparties
-    k.section(ws, 36, last, "۰۳", "بزرگ‌ترین طرف حساب‌ها", "جمع گردش هر طرف حساب در دفتر تراکنش‌ها")
+    # ------------------------------------------------------------ ۰۳ parties
+    p1 = m1 + 9
+    k.section(ws, p1, last, "۰۳", "بزرگ‌ترین طرف حساب‌ها",
+              "جمع گردش هر کد حساب در دفتر بانک")
     th = ["کد حساب", "نام", "گروه", "جمع بدهکار", "جمع بستانکار", "خالص"]
     for i, h in enumerate(th):
-        ws.write(37, i, h, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
-                               bg_color=FOREST, border=1, border_color=FOREST, align="center"))
+        ws.write(p1 + 1, i, h, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
+                                   bg_color=FOREST, border=1, border_color=FOREST,
+                                   align="center"))
     for i in range(8):
-        r = 38 + i
-        for c in range(6):
-            ws.write_blank(r, c, None, k.f(font_name=FA, font_size=9, bg_color=WHITE,
-                                           border=1, border_color=LINE_SOFT))
+        r = p1 + 2 + i
         ws.write_formula(
             r, 0,
             f'=IFERROR(INDEX(Post!$D$13:$D${12+PN},MATCH(LARGE(Post!$I$13:$I${12+PN},1),'
@@ -739,20 +961,222 @@ def sheet_anal(wb, k):
         ws.write_formula(r, 2, f'=IF($A{r+1}="","",IFERROR(VLOOKUP($A{r+1},AcctTbl,3,0),""))',
                          k.f(font_name=FA, font_size=8.5, bg_color=WHITE, border=1,
                              border_color=LINE_SOFT, align="right"))
-        ws.write_formula(r, 3, f'=IF($A{r+1}="","",SUMIF(Post!$D$13:$D${12+PN},$A{r+1},Post!$I$13:$I${12+PN}))',
+        ws.write_formula(r, 3, f'=IF($A{r+1}="","",SUMIF(Post!$D$13:$D${12+PN},$A{r+1},'
+                               f'Post!$I$13:$I${12+PN}))',
                          k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1,
                              border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 4, f'=IF($A{r+1}="","",SUMIF(Post!$D$13:$D${12+PN},$A{r+1},Post!$J$13:$J${12+PN}))',
+        ws.write_formula(r, 4, f'=IF($A{r+1}="","",SUMIF(Post!$D$13:$D${12+PN},$A{r+1},'
+                               f'Post!$J$13:$J${12+PN}))',
                          k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1,
                              border_color=LINE_SOFT, align="center", num_format=INT))
-        ws.write_formula(r, 5, f'=IF($A{r+1}="","",$D{r+1}-$E{r+1})',
-                         k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM, border=1,
-                             border_color=LINE_SOFT, align="center", num_format=INT_RED))
-    k.note(ws, 47, last,
-           "فهرست بالا با LARGE مرتب می‌شود؛ برای دیدن ریز هر طرف حساب، شیت Post را فیلتر کنید یا از فایل گزارش (03) استفاده کنید.",
+        ws.write_formula(r, 5, f'=IF($A{r+1}="","",$D{r+1}-$E{r+1})', net_f)
+    note_row = p1 + 12
+    k.note(ws, note_row, last,
+           "برای دیدن ریز هر طرف حساب، شیت Post را فیلتر کنید یا از فایل گزارش (03) استفاده کنید. "
+           "تحلیل طبقه‌بندی و هزینه‌های شخصی رئیس در شیت‌های Class و Personal است.",
            bg=SAND_2, icon="search")
+    ws.print_area(0, 0, note_row, last)
     return ws
 
+
+# =====================================================================  Class
+def sheet_class(wb, k, classes):
+    """Turnover of every classification, split into company / owner-personal."""
+    ws = wb.add_worksheet("Class")
+    last = 8
+    n = len(classes)
+    k.setup(ws, last, 14 + n + 6, landscape=True, repeat=(12, 13), freeze=(14, 3))
+    k.brand(ws, last, "طبقه‌بندی تراکنش‌ها — پول برای چه کاری رفت؟",
+            "هر تراکنش یک طبقه‌بندی دارد: خرید مرکبات، قبض، حقوق، تعمیر دستگاه‌ها یا هزینه شخصی رئیس",
+            icon="list")
+    k.kpis(ws, 6, [
+        ("جمع گردش شرکتی", f'=SUMIF($B$14:$B${13+n},"شرکتی",$H$14:$H${13+n})', INT, FOREST,
+         "money"),
+        ("جمع گردش شخصی رئیس", f'=SUMIF($B$14:$B${13+n},"شخصی رئیس",$H$14:$H${13+n})', INT,
+         GOLD, "people"),
+        ("سهم شخصی", f'=IFERROR($C$8/MAX(1,$A$8+$C$8),0)', PCT, TERRA, "gauge"),
+        ("طبقه‌بندی‌های دارای گردش", f'=COUNTIF($F$14:$F${13+n},">0")', INT, BLUE, "list"),
+    ], last)
+    k.note(ws, 9, last,
+           "ستون «طبقه‌بندی» در شیت Txn از همین فهرست می‌آید. برای افزودن طبقه‌بندی جدید: "
+           "00_Master ← شیت Cls ← یک ردیف خالی را پر کنید و فایل‌ها را دوباره بسازید.", bg=SAND,
+           icon="flag")
+    k.section(ws, 11, last, "۰۱", "گردش هر طبقه‌بندی",
+              "دامنه = شرکتی یا شخصی رئیس  ·  مانده = واریز − برداشت")
+    heads = [("طبقه‌بندی", "Class", 30), ("دامنه", "Scope", 12), ("گروه", "Group", 16),
+             ("تعداد", "Count", 9), ("واریز", "In", 15), ("برداشت", "Out", 15),
+             ("مانده", "Net", 15), ("سهم برداشت", "Share", 10), ("نمودار", "Bar", 10)]
+    for i, (fa, en, w) in enumerate(heads):
+        ws.set_column(i, i, w)
+        ws.write(12, i, fa, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
+                                bg_color=FOREST, border=1, border_color=FOREST,
+                                align="center", valign="vcenter", text_wrap=True))
+        ws.write(13, i, en, k.f(font_name=EN, font_size=6.5, font_color=SAGE_L,
+                                bg_color=FOREST, align="center"))
+    lab = k.f(font_name=FA, font_size=9, bg_color=SAND_2, border=1, border_color=LINE,
+              align="right")
+    sc = k.f(font_name=FA, font_size=8.5, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+             align="center")
+    grp = k.f(font_name=FA, font_size=8.5, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+              align="right")
+    cnt = k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+              align="center", num_format=INT)
+    in_f = k.f(font_name=EN, font_size=9, bg_color=MINT, border=1, border_color=LINE_SOFT,
+               align="center", num_format=INT)
+    out_f = k.f(font_name=EN, font_size=9, bg_color=BLUSH, border=1, border_color=LINE_SOFT,
+                align="center", num_format=INT)
+    net_f = k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM, border=1,
+                border_color=LINE_SOFT, align="center", num_format=INT_RED)
+    pct = k.f(font_name=EN, font_size=8.5, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+              align="center", num_format=PCT)
+    bar = k.f(font_name=EN, font_size=7, font_color=GOLD, bg_color=WHITE, align="right")
+    r0 = 14
+    for i, (code, title, scope, group) in enumerate(classes):
+        r = r0 + i
+        ws.write_string(r, 0, title, lab)
+        ws.write_string(r, 1, scope, sc)
+        ws.write_string(r, 2, group, grp)
+        ws.write_formula(r, 3, f'=COUNTIF(Txn!$F$13:$F${12+NR},$A{r+1})', cnt)
+        ws.write_formula(r, 4, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$F$13:$F${12+NR},$A{r+1},'
+                               f'Txn!$T$13:$T${12+NR},"IN")', in_f)
+        ws.write_formula(r, 5, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$F$13:$F${12+NR},$A{r+1},'
+                               f'Txn!$T$13:$T${12+NR},"OUT")', out_f)
+        ws.write_formula(r, 6, f'=$E{r+1}-$F{r+1}', net_f)
+        ws.write_formula(r, 7, f'=IFERROR($F{r+1}/MAX(1,SUM($F${r0+1}:$F${r0+n})),0)', pct)
+        ws.write_formula(r, 8, f'=REPT("█",MIN(14,ROUND(MAX($E{r+1},$F{r+1})/'
+                               f'MAX(1,MAX($E${r0+1}:$E${r0+n}),MAX($F${r0+1}:$F${r0+n}))*14,0)))',
+                         bar)
+    tot = r0 + n
+    ws.merge_range(tot, 0, tot, 2, "جمع کل", k.f(font_name=FA, font_size=10, bold=True,
+                                                 font_color=WHITE, bg_color=GOLD, border=1))
+    for c_ in (3, 4, 5, 6):
+        ws.write_formula(tot, c_, f"=SUM({chr(65+c_)}{r0+1}:{chr(65+c_)}{tot})",
+                         k.f(font_name=EN, font_size=9.5, bold=True, font_color=WHITE,
+                             bg_color=GOLD, border=1, num_format=INT))
+    ch = wb.add_chart({"type": "bar"})
+    ch.add_series({"name": "برداشت", "categories": ["Class", r0, 0, r0 + 11, 0],
+                   "values": ["Class", r0, 5, r0 + 11, 5], "fill": {"color": TERRA},
+                   "gap": 40})
+    ch.add_series({"name": "واریز", "categories": ["Class", r0, 0, r0 + 11, 0],
+                   "values": ["Class", r0, 4, r0 + 11, 4], "fill": {"color": SAGE},
+                   "gap": 40})
+    ch.set_title({"name": "ده طبقه‌بندی نخست (واریز و برداشت)",
+                  "name_font": {"name": FA, "size": 11}})
+    ch.set_legend({"position": "bottom", "font": {"name": FA, "size": 8}})
+    ch.set_size({"width": 560, "height": 280})
+    ws.insert_chart(f"K{r0}", ch, {"x_offset": 8, "y_offset": 6})
+    ws.print_area(0, 0, tot, last)
+    return ws
+
+
+# ==================================================================  Personal
+def sheet_personal(wb, k, classes):
+    """Owner's private money that runs through the company bank accounts."""
+    ws = wb.add_worksheet("Personal")
+    last = 7
+    pers = [c for c in classes if c[2] != "شرکتی"]
+    n = max(len(pers), 1)
+    k.setup(ws, last, 52, landscape=False, repeat=(12, 12), freeze=(13, 2))
+    k.brand(ws, last, "پول شخصی رئیس شرکت — جدا از هزینه‌های شرکت",
+            "این مبالغ از حساب شرکت می‌گذرند ولی هزینه شرکت نیستند؛ به حساب جاری رئیس می‌روند",
+            icon="people")
+    k.kpis(ws, 6, [
+        ("برداشت شخصی (از شرکت)", f'=SUM($E$14:$E${13+n})', INT, TERRA, "transfer"),
+        ("برگشت پول شخصی به شرکت", f'=SUM($D$14:$D${13+n})', INT, GREEN, "transfer"),
+        ("مانده بدهی رئیس به شرکت", f'=SUM($E$14:$E${13+n})-SUM($D$14:$D${13+n})', INT_RED,
+         FOREST, "gauge"),
+        ("تعداد تراکنش شخصی", f'=SUM($C$14:$C${13+n})', INT, GOLD, "list"),
+    ], last)
+    k.note(ws, 9, last,
+           "قاعده: هر پولی که برای مصرف شخصی رئیس (خانه، خودرو، وسایل، درمان، سفر) از حساب شرکت "
+           "بیرون می‌رود، در ستون «طبقه‌بندی» شیت Txn با یکی از طبقه‌بندی‌های «شخصی رئیس» ثبت می‌شود. "
+           "این مبلغ در دفتر به حساب جاری رئیس (X021) می‌نشیند، نه به هزینه شرکت؛ پس سود شرکت را کم نمی‌کند "
+           "و بدهی رئیس به شرکت را نشان می‌دهد.", bg="#FFF1D6", icon="flag", h=56)
+    k.section(ws, 11, last, "۰۱", "ریز مصرف شخصی",
+              "هر ردیف یک نوع هزینه شخصی  ·  ستون آخر نمای نسبی")
+    heads = [("طبقه‌بندی شخصی", "Class", 30), ("تعداد", "Count", 9), ("واریز/برگشت", "In", 15),
+             ("برداشت", "Out", 15), ("مانده", "Net", 15), ("نمودار", "Bar", 12)]
+    for i, (fa, en, w) in enumerate(heads):
+        ws.set_column(i, i, w)
+        ws.write(12, i, fa, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
+                                bg_color=TERRA, border=1, border_color=TERRA,
+                                align="center", valign="vcenter", text_wrap=True))
+        ws.write(13, i, en, k.f(font_name=EN, font_size=6.5, font_color="#F6D9CE",
+                                bg_color=TERRA, align="center"))
+    lab = k.f(font_name=FA, font_size=9, bg_color="#FFF1D6", border=1, border_color=LINE,
+              align="right")
+    cnt = k.f(font_name=EN, font_size=9, bg_color=WHITE, border=1, border_color=LINE_SOFT,
+              align="center", num_format=INT)
+    in_f = k.f(font_name=EN, font_size=9, bg_color=MINT, border=1, border_color=LINE_SOFT,
+               align="center", num_format=INT)
+    out_f = k.f(font_name=EN, font_size=9, bg_color=BLUSH, border=1, border_color=LINE_SOFT,
+                align="center", num_format=INT)
+    net_f = k.f(font_name=EN, font_size=9, bold=True, bg_color=CREAM, border=1,
+                border_color=LINE_SOFT, align="center", num_format=INT_RED)
+    bar = k.f(font_name=EN, font_size=7, font_color=TERRA, bg_color=WHITE, align="right")
+    r0 = 14
+    for i, (code, title, scope, group) in enumerate(pers):
+        r = r0 + i
+        ws.write_string(r, 0, title, lab)
+        ws.write_formula(r, 1, f'=COUNTIF(Txn!$F$13:$F${12+NR},$A{r+1})', cnt)
+        ws.write_formula(r, 2, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$F$13:$F${12+NR},$A{r+1},'
+                               f'Txn!$T$13:$T${12+NR},"IN")', in_f)
+        ws.write_formula(r, 3, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$F$13:$F${12+NR},$A{r+1},'
+                               f'Txn!$T$13:$T${12+NR},"OUT")', out_f)
+        ws.write_formula(r, 4, f'=$C{r+1}-$D{r+1}', net_f)
+        ws.write_formula(r, 5, f'=REPT("█",MIN(14,ROUND($D{r+1}/'
+                               f'MAX(1,MAX($D${r0+1}:$D${r0+n}))*14,0)))', bar)
+    tot = r0 + n
+    ws.write(tot, 0, "جمع", k.f(font_name=FA, font_size=10, bold=True,
+                                font_color=WHITE, bg_color=TERRA, border=1))
+    for c_ in (1, 2, 3, 4):
+        ws.write_formula(tot, c_, f"=SUM({chr(65+c_)}{r0+1}:{chr(65+c_)}{tot})",
+                         k.f(font_name=EN, font_size=9.5, bold=True, font_color=WHITE,
+                             bg_color=TERRA, border=1, num_format=INT))
+
+    # monthly
+    m0 = tot + 3
+    k.section(ws, m0, last, "۰۲", "روند ماهانه پول شخصی", "هر ماه چند تومان از شرکت خارج شد؟")
+    mh = [("ماه", "Month", 9), ("برداشت شخصی", "Out", 16), ("برگشت", "In", 16),
+          ("مانده", "Net", 16), ("تجمعی", "Cumulative", 16), ("نمودار", "Bar", 12)]
+    for i, (fa, en, w) in enumerate(mh):
+        ws.write(m0 + 1, i, fa, k.f(font_name=FA, font_size=9, bold=True, font_color=WHITE,
+                                    bg_color=FOREST_2, border=1, border_color=FOREST_2,
+                                    align="center"))
+    for i in range(12):
+        r = m0 + 2 + i
+        ws.write_number(r, 0, i + 1, k.f(font_name=EN, font_size=9, bg_color=SAND_2, border=1,
+                                         border_color=LINE, align="center", num_format="00"))
+        ws.write_formula(r, 1, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$AD$13:$AD${12+NR},$A{r+1},'
+                               f'Txn!$Z$13:$Z${12+NR},"شخصی رئیس",Txn!$T$13:$T${12+NR},"OUT")',
+                         out_f)
+        ws.write_formula(r, 2, f'=SUMIFS(Txn!$M$13:$M${12+NR},Txn!$AD$13:$AD${12+NR},$A{r+1},'
+                               f'Txn!$Z$13:$Z${12+NR},"شخصی رئیس",Txn!$T$13:$T${12+NR},"IN")',
+                         in_f)
+        ws.write_formula(r, 3, f'=$B{r+1}-$C{r+1}', net_f)
+        ws.write_formula(r, 4, f'=IF($A{r+1}="","",N($D{r+1}))' if i == 0 else
+                         f'=IF($A{r+1}="","",N($E{r})+N($D{r+1}))', net_f)
+        ws.write_formula(r, 5, f'=REPT("█",MIN(12,ROUND($B{r+1}/'
+                               f'MAX(1,MAX($B${m0+2}:$B${m0+13}))*12,0)))', bar)
+    ch = wb.add_chart({"type": "column"})
+    ch.add_series({"name": "برداشت شخصی", "categories": ["Personal", m0 + 2, 0, m0 + 13, 0],
+                   "values": ["Personal", m0 + 2, 1, m0 + 13, 1],
+                   "fill": {"color": TERRA}, "gap": 55})
+    ch.add_series({"name": "برگشت", "categories": ["Personal", m0 + 2, 0, m0 + 13, 0],
+                   "values": ["Personal", m0 + 2, 2, m0 + 13, 2],
+                   "fill": {"color": SAGE}, "gap": 55})
+    ch.set_title({"name": "ماه به ماه", "name_font": {"name": FA, "size": 10}})
+    ch.set_legend({"position": "bottom", "font": {"name": FA, "size": 8}})
+    ch.set_size({"width": 360, "height": 230})
+    ws.insert_chart(f"F{m0+2}", ch, {"x_offset": 6, "y_offset": 4})
+    note_row = m0 + 16
+    k.note(ws, note_row, last,
+           "برای تسویه با رئیس: هر بار پول شخصی برداشت می‌شود «پرداخت به حساب شخصی رئیس» و هر بار "
+           "برمی‌گرداند «دریافت از حساب شخصی رئیس» را در شیت Txn ثبت کنید. مانده این شیت همان "
+           "بدهی رئیس به شرکت است و در فایل تراز (05_Bal) در حساب جاری رئیس دیده می‌شود.",
+           bg=SAND, icon="people", h=48)
+    ws.print_area(0, 0, note_row, last)
+    return ws
 
 
 # ===================================================================  Payable
@@ -875,14 +1299,14 @@ def sheet_card(wb, k, banks):
                 border_color=LINE_SOFT, align="center"))
         ws.write_formula(
             r, 2,
-            f'=SUMIFS(Txn!$O$13:$O${12+NR},Txn!$E$13:$E${12+NR},INDEX(BankTbl,{i+1},1),'
-            f'Txn!$G$13:$G${12+NR},"کارت/پوز")',
+            f'=SUMIFS(Txn!$O$13:$O${12+NR},Txn!$J$13:$J${12+NR},INDEX(BankTbl,{i+1},1),'
+            f'Txn!$L$13:$L${12+NR},"کارت/پوز")',
             k.f(font_name=EN, font_size=9, bg_color=MINT, border=1,
                 border_color=LINE_SOFT, align="center", num_format=INT))
         ws.write_formula(
             r, 3,
-            f'=SUMIFS(Txn!$O$13:$O${12+NR},Txn!$E$13:$E${12+NR},INDEX(BankTbl,{i+1},1),'
-            f'Txn!$D$13:$D${12+NR},"واریز پز باسکول (۲۰۰۶)")',
+            f'=SUMIFS(Txn!$O$13:$O${12+NR},Txn!$J$13:$J${12+NR},INDEX(BankTbl,{i+1},1),'
+            f'Txn!$E$13:$E${12+NR},"واریز پز باسکول (۲۰۰۶)")',
             k.f(font_name=EN, font_size=9, bg_color=GOLD_L, border=1,
                 border_color=LINE_SOFT, align="center", num_format=INT))
         ws.write_formula(r, 4, f'=$C{r+1}-$D{r+1}',
@@ -998,7 +1422,7 @@ def sheet_home(wb, k, acc, banks):
     k.brand(ws, last, "فایل تراکنش‌های بانکی",
             "ثبت، کنترل و تحلیل گردش حساب‌های شرکت  ·  همه کشوها از فایل مادر تعریف شده‌اند", icon="bank")
     k.kpis(ws, 6, [
-        ("تراکنش‌ها", f"=COUNTA(Txn!$B$13:$B${12+NR})", INT, FOREST, "list"),
+        ("تراکنش‌ها", f"=COUNTA(Txn!$H$13:$H${12+NR})", INT, FOREST, "list"),
         ("دریافت", f"=SUM(Txn!$O$13:$O${12+NR})", INT, GREEN, "transfer"),
         ("پرداخت", f"=SUM(Txn!$P$13:$P${12+NR})", INT, RED, "transfer"),
         ("مانده بانک‌ها", "=SUM(Sum!$E$12:$E$21)", INT, BLUE, "bank"),
@@ -1011,6 +1435,10 @@ def sheet_home(wb, k, acc, banks):
         ("تحلیل  Anal", "بر پایه نوع عملیات، روش پرداخت و طرف حساب", "internal:Anal!A1", "gauge", BLUE),
         ("کارت/پوز  Card", "کارت‌به‌کارت و پز باسکول به تفکیک بانک", "internal:Card!A1", "card", TERRA),
         ("چک‌ها  Chq", "سررسید، وضعیت و مبلغ چک‌های دریافتی/پرداختی", "internal:Chq!A1", "cheque", "#8E6C88"),
+        ("طبقه‌بندی  Class", "پول برای چه کاری رفت؟ گردش هر طبقه‌بندی، شرکتی و شخصی",
+         "internal:Class!A1", "list", "#4F7C6C"),
+        ("شخصی رئیس  Personal", "مصرف شخصی رئیس از حساب شرکت و بدهی او به شرکت",
+         "internal:Personal!A1", "people", TERRA),
     ], last, per_row=3)
 
     row = 21
@@ -1152,6 +1580,7 @@ def sheet_help(wb, k, acc, banks):
 
 def build(master_path, out_path, demo=None):
     acc, banks, gl, bd = master_data(master_path)
+    classes = read_classes(master_path)
     global DEMO
     if demo is not None:
         DEMO = list(demo)
@@ -1171,10 +1600,12 @@ def build(master_path, out_path, demo=None):
     sheet_sum(wb, k, banks)
     sheet_flow(wb, k)
     sheet_anal(wb, k)
+    sheet_class(wb, k, classes)
+    sheet_personal(wb, k, classes)
     sheet_payable(wb, k, bd)
     sheet_card(wb, k, banks)
     sheet_chq(wb, k)
-    sheet_sync(wb, k, acc, banks, gl, bd)
+    sheet_sync(wb, k, acc, banks, gl, bd, classes)
     sheet_help(wb, k, acc, banks)
     wb.worksheets()[0].activate()
     wb.close()

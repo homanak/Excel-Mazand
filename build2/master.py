@@ -9,7 +9,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.workbook.defined_name import DefinedName
 
-from bank2 import BANK_OPS
+from bank2 import TXN_OPS, CLASSES
 
 FOREST = "FF14453D"
 CREAM = "FFFBF8F1"
@@ -111,7 +111,7 @@ def build(src, dst):
     # ---- new list columns (S, T, U)
     start_col = 19   # S
     blocks = [
-        ("نوع عملیات بانکی", "Bank operations", [o[0] for o in BANK_OPS]),
+        ("نوع عملیات بانکی", "Bank operations", [o[0] for o in TXN_OPS]),
         ("شخص باسکول دیگران", "Other scales",
          [f"{c} – {n}" if n else f"{c} – (بدون نام)" for c, n in bd]),
         ("بانک عامل (کد و نام)", "Company banks", [f"{c} – {t}" for c, t in banks]),
@@ -137,8 +137,8 @@ def build(src, dst):
 
     # ---- defined names
     want = {
-        "ListBankOps": f"List!$S$10:$S$29",
-        "ListOtherScalesLabel": f"List!$T$10:$T$29",
+        "ListBankOps": f"List!$S$10:$S${9 + len(TXN_OPS)}",
+        "ListOtherScalesLabel": f"List!$T$10:$T${9 + len(bd)}",
         "ListBankNames": f"List!$U$10:$U$19",
     }
     for name, ref in want.items():
@@ -151,7 +151,7 @@ def build(src, dst):
     if sy.cell(6, 8).value in (None, ""):
         hdr = sy.cell(6, 8, "نوع عملیات بانکی")
         style(hdr, size=9.5, bold=True, color=WHITE, fill=FOREST, border=True, align="center")
-        for j, (title, direction, mode, fixed, _n) in enumerate(BANK_OPS):
+        for j, (title, direction, mode, fixed, _n) in enumerate(TXN_OPS):
             sy.cell(7 + j, 8, title)
             style(sy.cell(7 + j, 8), size=9, fill=CREAM, border=True, align="right")
             sy.cell(7 + j, 9, direction)

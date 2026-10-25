@@ -36,6 +36,7 @@ import grow                                                         # noqa: E402
 import entry4                                                       # noqa: E402
 import mirror4                                                      # noqa: E402
 import relink                                                       # noqa: E402
+import bill                                                         # noqa: E402
 
 V02 = os.path.join(ROOT, "Mazandasht_v02")
 V03 = os.path.join(ROOT, "Mazandasht_v03")
@@ -69,16 +70,16 @@ def bd_rows(master_path):
     out = [
         ("1405/07/04", "TB-902", "دریافت هزینه باسکول دیگران", "BN02", "",
          "کارت/پوز", "", "هزینه باسکول دیگران — دریافت از مشتری",
-         "", 1_800_000, f"{pick[0][0]} – {pick[0][1]}"),
+         "", 1_800_000, f"{pick[0][0]} – {pick[0][1]}", "هزینه باسکول دیگران"),
         ("1405/07/09", "TB-903", "دریافت هزینه باسکول دیگران", "BN01", "",
          "انتقال بانکی", "", "هزینه باسکول دیگران — واریز",
-         "TR-9002", 2_400_000, f"{pick[1][0]} – {pick[1][1]}"),
+         "TR-9002", 2_400_000, f"{pick[1][0]} – {pick[1][1]}", "هزینه باسکول دیگران"),
         ("1405/07/11", "TB-904", "پرداخت به باسکول دیگران", "BN02", "",
          "کارت/پوز", "", "تسویه بدهی باسکول دیگران",
-         "", 1_500_000, f"{pick[0][0]} – {pick[0][1]}"),
+         "", 1_500_000, f"{pick[0][0]} – {pick[0][1]}", "تسویه باسکول دیگران"),
         ("1405/07/12", "TB-905", "پرداخت به باسکول دیگران", "BN01", "",
          "انتقال بانکی", "", "تسویه بخشی از بدهی باسکول دیگران",
-         "TR-9003", 900_000, f"{pick[1][0]} – {pick[1][1]}"),
+         "TR-9003", 900_000, f"{pick[1][0]} – {pick[1][1]}", "تسویه باسکول دیگران"),
     ]
     return out
 
@@ -119,6 +120,111 @@ def persons(path):
     wb.calculation.fullCalcOnLoad = True
     wb.save(path)
     return used
+
+
+# ------------------------------------------------------------------- master+
+def master_extras(path):
+    """Adds the transaction-classification sheet (Cls) and the owner's current
+    account (X021) to the mother file."""
+    from openpyxl.styles import Border, PatternFill, Side
+    wb = openpyxl.load_workbook(path)
+
+    # ---- owner current account
+    acc = wb["Acc"]
+    used = [r for r in range(10, 300) if acc.cell(r, 1).value]
+    codes = {str(acc.cell(r, 1).value) for r in used}
+    if "X021" not in codes:
+        row = (max(used) + 1) if used else 10
+        vals = ["X021", "سرمایه و آورده صاحبان", "جاری شرکا", "حساب جاری رئیس شرکت",
+                "—", "—", "—"]
+        for i, v in enumerate(vals):
+            cell = acc.cell(row, i + 1, v)
+            cell.font = Font(name="B Nazanin", size=9)
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # ---- classification sheet
+    if "Cls" in wb.sheetnames:
+        del wb["Cls"]
+    ws = wb.create_sheet("Cls", 5)
+    thin = Side(style="thin", color="DDD5C4")
+    box = Border(left=thin, right=thin, top=thin, bottom=thin)
+    forest, white, sand = "14453D", "FFFFFF", "F7F1E6"
+    ws.sheet_view.rightToLeft = True
+    ws.sheet_view.showGridLines = False
+    ws.merge_cells("A1:G1")
+    c = ws["A1"]
+    c.value = "   طبقه‌بندی تراکنش‌های بانکی — این پول برای چه کاری بود؟"
+    c.font = Font(name="B Titr", size=14, bold=True, color=white)
+    c.fill = PatternFill("solid", fgColor=forest)
+    c.alignment = Alignment(horizontal="right", vertical="center")
+    ws.row_dimensions[1].height = 30
+    ws.merge_cells("A2:G2")
+    c = ws["A2"]
+    c.value = ("   هر ردیف یک زیرمجموعه است: خرید مرکبات، فروش مرکبات، قبض، حقوق، "
+               "تعمیر و نگهداری دستگاه‌ها، و هزینه‌های شخصی رئیس. ستون «دامنه» مشخص می‌کند "
+               "این پول شرکت است یا پول شخصی رئیس.")
+    c.font = Font(name="B Nazanin", size=9, color="6B7A76")
+    c.fill = PatternFill("solid", fgColor="FBF8F1")
+    c.alignment = Alignment(horizontal="right", vertical="center", wrap_text=True)
+    ws.row_dimensions[2].height = 30
+
+    heads = ["کد", "عنوان طبقه‌بندی", "دامنه", "گروه حساب", "توضیح", "فعال"]
+    spans = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6)]
+    for (a, b), h in zip(spans, heads):
+        cell = ws.cell(8, a, h)
+        cell.font = Font(name="B Nazanin", size=9.5, bold=True, color=white)
+        cell.fill = PatternFill("solid", fgColor=forest)
+        cell.border = box
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[8].height = 24
+
+    ens = ["Code", "Classification", "Scope", "Group", "Note", "Active"]
+    for j, h in enumerate(ens, start=1):
+        cell = ws.cell(9, j, h)
+        cell.font = Font(name="Tahoma", size=7.5, color="8B7E68")
+        cell.fill = PatternFill("solid", fgColor="F3EADB")
+        cell.border = box
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    for i, (code, title, scope, group) in enumerate(bank2.CLASSES):
+        r = 10 + i
+        vals = [code, title, scope, group,
+                "پول شخصی رئیس — به حساب جاری رئیس می‌رود" if scope != "شرکتی"
+                else "هزینه/درآمد شرکت", "بله"]
+        for j, v in enumerate(vals, start=1):
+            cell = ws.cell(r, j, v)
+            cell.font = Font(name="B Nazanin", size=9,
+                             color="9A6B15" if scope != "شرکتی" else "2B2A26")
+            cell.fill = PatternFill("solid",
+                                    fgColor="FFF1D6" if scope != "شرکتی" else sand)
+            cell.border = box
+            cell.alignment = Alignment(horizontal="right" if j == 2 else "center",
+                                       vertical="center")
+    width = {"A": 9, "B": 36, "C": 13, "D": 24, "E": 42, "F": 8}
+    for col, w in width.items():
+        ws.column_dimensions[col].width = w
+    ws.print_area = f"A1:F{9 + len(bank2.CLASSES)}"
+    ws.print_title_rows = "8:9"
+    ws.page_setup.paperSize = 9
+    ws.page_setup.orientation = "portrait"
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.print_options.horizontalCentered = True
+    ws.oddHeader.left.text = "مازندشت — فایل مادر"
+    ws.oddHeader.center.text = "MAZANDASHT · CLASSIFICATION"
+    ws.oddHeader.right.text = "&A"
+    ws.oddFooter.left.text = "&F"
+    ws.oddFooter.center.text = "صفحه &P از &N"
+    ws.oddFooter.right.text = "نسخه ۰۴ · ۱۴۰۵"
+    for part in (ws.oddHeader.left, ws.oddHeader.center, ws.oddHeader.right,
+                 ws.oddFooter.left, ws.oddFooter.center, ws.oddFooter.right):
+        part.size = 8
+
+    wb.calculation.fullCalcOnLoad = True
+    wb.save(path)
+    wb.close()
+    return len(bank2.CLASSES)
 
 
 # ---------------------------------------------------------------------- cache
@@ -166,6 +272,8 @@ def main(tiny=False):
 
     print("00_Master.xlsx")
     master.build(os.path.join(V02, "00_Master.xlsx"), os.path.join(OUT, "00_Master.xlsx"))
+    n_cls = master_extras(os.path.join(OUT, "00_Master.xlsx"))
+    print(f"  Cls sheet: {n_cls} classifications · owner account X021")
     n = persons(os.path.join(OUT, "00_Master.xlsx"))
     print(f"  named {n} «باسکول دیگران» accounts")
     print("   relink:", relink.polish(os.path.join(OUT, "00_Master.xlsx")))
@@ -178,6 +286,8 @@ def main(tiny=False):
             shutil.copy2(src, os.path.join(OUT, name))
     info = entry4.build(os.path.join(OUT, "01_Entry.xlsx"), groups)
     print(" ", info)
+    bill.build(os.path.join(OUT, "01_Entry.xlsx"))
+    print("   Bill sheet: auto invoice + payment block")
     print("   relink:", relink.polish(os.path.join(OUT, "01_Entry.xlsx")))
 
     if os.path.exists(os.path.join(OUT, "07_Demo.xlsx")):
@@ -191,10 +301,7 @@ def main(tiny=False):
 
     print("02_Bank.xlsx")
     vals = load_cache()
-    demo = [tuple(r) for r in vals["statement"]]
-    demo += [("1405/07/13", "TB-901", "انتقال داخلی بین بانک‌ها", "BN01", "BN03",
-              "انتقال بانکی", "", "انتقال به حساب ملت", "TR-9001", 50_000_000)]
-    demo += bd_rows(os.path.join(OUT, "00_Master.xlsx"))
+    demo = list(bank2.DEMO) + bd_rows(os.path.join(OUT, "00_Master.xlsx"))
     bank2.build(os.path.join(OUT, "00_Master.xlsx"), os.path.join(OUT, "02_Bank.xlsx"),
                 demo=demo or None)
     print(f"  statement rows: {len(demo)}")

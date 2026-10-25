@@ -177,6 +177,23 @@ def book_structure():
         ws = wb[sheet]
         print(f"   {sheet}: dims {ws.dimensions}  print {ws.print_area}  "
               f"dv {len(ws.data_validations.dataValidation)}")
+    if "Bill" not in wb.sheetnames:
+        bad("01_Entry: no Bill sheet")
+    else:
+        bl = wb["Bill"]
+        area = str(bl.print_area or "").replace("$", "").replace("'", "")
+        net = str(bl["H11"].value or "")
+        print(f"   Bill: dims {bl.dimensions}  print {area}  dv {len(bl.data_validations.dataValidation)}")
+        if not area.startswith("Bill!A1:K"):
+            bad(f"Bill print area {area} is not A1:K…")
+        if "FLOOR(" not in net or "$O$5" not in net:
+            bad("Bill net-kg formula missing FLOOR / loss cell")
+        if "A11" not in area and not area.startswith("Bill!A1:"):
+            bad("Bill print area does not include the line table")
+        refs = {str(dv.sqref) for dv in bl.data_validations.dataValidation}
+        for want in ("O2", "O9", "O10"):
+            if want not in refs:
+                bad(f"Bill: no dropdown on {want}")
     gp = [ws_g for ws_g in wb["GRep"].iter_rows(min_row=13, max_row=24, min_col=3, max_col=3,
                                                 values_only=True)]
     print("   GRep formula sample:", str(gp[0][0])[:90])
@@ -191,18 +208,15 @@ def bank_structure():
     p = os.path.join(OUT, "02_Bank.xlsx")
     wb = openpyxl.load_workbook(p, data_only=False)
     txn = wb["Txn"]
-    dr = cr = 0.0
     rows = 0
     bd = Counter()
     for r in range(13, txn.max_row + 1):
-        amt = txn.cell(r, 13).value
+        amt = txn.cell(r, 13).value                # M = مبلغ
         if not isinstance(amt, (int, float)):
             continue
         rows += 1
-        if str(txn.cell(r, 4).value or "").strip() in ("TRF", "TRANSFER"):
-            pass
-        op = str(txn.cell(r, 4).value or "")
-        person = str(txn.cell(r, 14).value or "")
+        op = str(txn.cell(r, 5).value or "")        # E = جزئیات عملیات
+        person = str(txn.cell(r, 17).value or "")   # Q = شخص باسکول دیگران
         if "باسکول دیگران" in op:
             bd[person] += 1
     post = wb["Post"]
@@ -221,7 +235,7 @@ def bank_structure():
                 t = z.read(n).decode()
                 s_ = re.findall(r'<dataValidation [^>]*sqref="([^"]+)"', t)
                 rel[n] = s_
-    bank_dv = [x for v in rel.values() for x in v if "B5012" in x or "B5000" in x]
+    bank_dv = [x for v in rel.values() for x in v if "5012" in x or "5000" in x]
     print("   Txn dropdowns reach row 5012:", bool(bank_dv))
     people = 0
     for r in range(13, 60):
@@ -232,6 +246,17 @@ def bank_structure():
     if people < 5:
         bad("Payable report lists too few people")
     print("   Payable sample:", str(pay.cell(13, 3).value)[:80])
+    for name in ("Anal", "Class", "Personal"):
+        if name not in wb.sheetnames:
+            bad(f"02_Bank: no {name} sheet")
+            continue
+        ws2 = wb[name]
+        print(f"   {name}: dims {ws2.dimensions}  print {ws2.print_area}  "
+              f"charts {len(ws2._charts)}")
+        if not ws2.print_area:
+            bad(f"02_Bank/{name}: no print area")
+        if not ws2._charts and name != "Personal":
+            bad(f"02_Bank/{name}: no chart")
     # bank txn rows that name a باسکول دیگران person
     print("   باسکول دیگران rows in Txn:", sum(bd.values()), dict(bd))
     if not sum(bd.values()):

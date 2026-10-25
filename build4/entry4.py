@@ -419,12 +419,13 @@ def home_links(wb):
     ws = wb["Home"]
     r = ws.max_row + 2
     ws.merge_cells(f"A{r}:J{r}")
-    c = ws.cell(r, 1, "   شیت‌های تازه: Inv (دفتر فاکتورها)  ·  Print (فاکتور چاپی A4)  ·  "
-                      "GRep (گزارش گروه‌های حساب) — روی نام شیت کلیک کنید.")
+    c = ws.cell(r, 1, "   شیت‌های تازه: Inv (دفتر فاکتورها)  ·  Bill (فاکتور خودکار با وزن خالص "
+                      "و افت)  ·  Print (فاکتور چاپی A4)  ·  GRep (گزارش گروه‌های حساب) — "
+                      "روی نام شیت کلیک کنید.")
     L.st(c, name=L.FA, size=10.5, color=L.WHITE, bg=L.GOLD, border=L.GOLD, h="right")
     ws.row_dimensions[r].height = 24
-    links = [("Inv", "دفتر فاکتورها", "B"), ("Print", "فاکتور چاپی", "F"),
-             ("GRep", "گزارش گروه‌ها", "H")]
+    links = [("Inv", "دفتر فاکتورها", "B"), ("Bill", "فاکتور خودکار", "C"),
+             ("Print", "فاکتور چاپی", "F"), ("GRep", "گزارش گروه‌ها", "H")]
     for i, (sheet, label, _) in enumerate(links):
         cell = ws.cell(r + 1, 1 + i * 3)
         cell.value = label
