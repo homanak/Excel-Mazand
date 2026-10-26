@@ -114,7 +114,7 @@ def build(src, dst):
         ("نوع عملیات بانکی", "Bank operations", [o[0] for o in TXN_OPS]),
         ("شخص باسکول دیگران", "Other scales",
          [f"{c} – {n}" if n else f"{c} – (بدون نام)" for c, n in bd]),
-        ("بانک عامل (کد و نام)", "Company banks", [f"{c} – {t}" for c, t in banks]),
+        ("بانک شرکت (کد و نام)", "Company banks", [f"{c} – {t}" for c, t in banks]),
     ]
     for i, (fa, en, values) in enumerate(blocks):
         c = start_col + i
