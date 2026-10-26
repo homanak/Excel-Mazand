@@ -424,7 +424,7 @@ def partnership():
 
     wb = openpyxl.load_workbook(os.path.join(OUT, "01_Entry.xlsx"))
     sc = wb["Scale"]
-    heads = [sc[f"{c}8"].value for c in ("AQ", "AR", "AS", "AT", "AU", "AV")]
+    heads = [sc[f"{c}8"].value for c in ("AQ", "AR", "AS", "AT", "AU", "AV", "AW")]
     if any(h is None for h in heads):
         bad("01_Entry/Scale: share headers AQ…AV are incomplete"); ok = False
     else:
@@ -434,9 +434,13 @@ def partnership():
     if str(sc.print_area) != "'Scale'!$A$1:$T$10009":
         bad(f"01_Entry/Scale: print area is {sc.print_area}"); ok = False
     last = 10009
-    f = str(sc[f"AR{last}"].value or "")
-    if "$AQ" not in f and "*" not in f:
-        bad(f"01_Entry/Scale: AR{last} is not a share formula: {f[:60]}"); ok = False
+    for col in ("AS", "AT", "AU", "AV"):          # our / partner share, rial and kg
+        f = str(sc[f"{col}{last}"].value or "")
+        if not (f.startswith("=") and "$AR" in f):
+            bad(f"01_Entry/Scale: {col}{last} is not a share formula: {f[:60]}")
+            ok = False
+    if "SEARCH" not in str(sc[f"AW{last}"].value or ""):
+        bad(f"01_Entry/Scale: AW{last} has no partnership control"); ok = False
     if "Shrk" not in wb.sheetnames:
         bad("01_Entry: sheet Shrk (partner report) is missing"); ok = False
     else:

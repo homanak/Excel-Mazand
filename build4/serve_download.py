@@ -46,7 +46,7 @@ PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>مازندشت — دانلود نسخه ۰۴</title>
+<title>مازندشت — دانلود نسخه ۰۴ · ویرایش ۵</title>
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
 <style>
   :root{{--forest:#14453D;--forest2:#1D5B50;--gold:#C89B3C;--terra:#C4623F;
@@ -101,11 +101,12 @@ PAGE = """<!doctype html>
 <div class="wrap">
   <header>
     <p class="kicker">MAZANDASHT · CITRUS SORTING &amp; PACKING</p>
-    <h1>نسخه ۰۴ سامانه حسابداری مازندشت</h1>
+    <h1>نسخه ۰۴ · ویرایش ۵ — سامانه حسابداری مازندشت</h1>
     <p class="sub">۹ فایل اکسل آماده، همه در یک پوشه با لینک نسبی؛ دفتر روزنامه ۵۰٬۰۰۰ سطری، بانک ۵٬۰۰۰ تراکنشی،
-       چاپ A4 در تمام شیت‌ها و داشبورد مدیریتی.</p>
+       چاپ A4 در تمام شیت‌ها، داشبورد مدیریتی و <b>حساب شرکا با سهم وزنی (ویرایش ۵)</b>.</p>
     <div class="badges">
-      <span class="badge">۹ فایل · ۸۲ شیت</span>
+      <span class="badge">۹ فایل · ۹۰ شیت</span>
+      <span class="badge">شراکت: ۲۰ شریک · سهم از وزن</span>
       <span class="badge">کنترل ساختاری: ۰ ایراد</span>
       <span class="badge">Excel 2013 به بالا</span>
       <span class="badge">راست‌به‌چپ · تقویم شمسی</span>
@@ -130,10 +131,11 @@ PAGE = """<!doctype html>
       <li>هر فایل را در Excel 2013 یا جدیدتر باز کنید؛ محاسبه خودکار روی کل فایل روشن است و ممکن است چند لحظه طول بکشد.</li>
       <li>اگر پیام «به‌روزرسانی پیوندها» آمد، <b>Enable / به‌روزرسانی</b> را بزنید تا داده‌های ۰۳ تا ۰۶ و داشبورد پر شوند.</li>
       <li>ثبت روزانه فقط در <b>01_Entry</b> و تراکنش بانکی فقط در <b>02_Bank</b>؛ بقیه فایل‌ها گزارش‌اند و دستکاری نمی‌شوند.</li>
+      <li><b>بار شراکتی:</b> در باسکول عملیات «خرید شراکتی (ورود)» یا «فروش شراکتی (خروج)» را بزنید و کد شریک (SHxx) را انتخاب کنید؛ سهم خودکار از وزن حساب می‌شود و در شیت <b>Shrk</b> دیده می‌شود.</li>
     </ol>
   </div>
 
-  <footer>سورتینگ و بسته‌بندی مرکبات «مازندشت» · نسخه ۰۴ · ۱۴۰۵</footer>
+  <footer>سورتینگ و بسته‌بندی مرکبات «مازندشت» · نسخه ۰۴ · ویرایش ۵ · ۱۴۰۵</footer>
 </div>
 </body>
 </html>
