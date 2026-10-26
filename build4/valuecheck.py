@@ -70,6 +70,45 @@ def main():
     for r in range(38, 44):
         print(r, [get("Shrk", f"{c}{r}") for c in "ABCDEFGHIJK"])
 
+    print("\n--- split & fee (Pay rows)")
+    for r in range(22, 27):
+        print(r, "doc=", get("Pay", f"C{r}"), "type=", get("Pay", f"D{r}"),
+              "acct=", get("Pay", f"F{r}"), "amount=", get("Pay", f"K{r}"),
+              "| fee=", get("Pay", f"AH{r}"), get("Pay", f"AI{r}"),
+              "splits=", (get("Pay", f"AJ{r}"), get("Pay", f"AK{r}"),
+                          get("Pay", f"AL{r}"), get("Pay", f"AM{r}")),
+              "| sum=", get("Pay", f"AQ{r}"), "net1=", get("Pay", f"AT{r}"),
+              "net2=", get("Pay", f"AU{r}"), "ctl=", repr(get("Pay", f"AP{r}")))
+
+    print("\n--- journal legs of PV-104 / PV-105")
+    base = 10 + (make4.grow.SCALE_LAST - 9) * 4
+    for prow in (25, 26):
+        r0 = base + (prow - 10) * 6
+        print("Pay", prow, "-> Book", r0, "…", r0 + 5)
+        for r in range(r0, r0 + 6):
+            print("   ", r, [get("Book", f"{c}{r}") for c in ("A", "D", "L", "M")])
+        dr = sum((get("Book", f"L{r}") or 0) for r in range(r0, r0 + 6)
+                 if isinstance(get("Book", f"L{r}"), (int, float)))
+        cr = sum((get("Book", f"M{r}") or 0) for r in range(r0, r0 + 6)
+                 if isinstance(get("Book", f"M{r}"), (int, float)))
+        print("    legs debit", dr, "credit", cr, "diff", round(dr - cr, 2))
+
+    print("\n--- Stmt (C001) — loads")
+    for r in range(13, 20):
+        print(r, [get("Stmt", f"{c}{r}") for c in "ABCDEFGHIJ"])
+    print("Stmt counters:", get("Stmt", "M2"), get("Stmt", "M3"),
+          "| idx:", [get("Stmt", f"M{r}") for r in (12, 13, 42, 45, 46, 53)])
+    print("Stmt totals:", [get("Stmt", f"E{r}") for r in (54, 55, 56)],
+          "| bal:", get("Stmt", "B8"), "| who:", get("Stmt", "D9"))
+
+    print("\n--- Ledger (C001)")
+    for r in range(12, 20):
+        print(r, [get("Ledger", f"{c}{r}") for c in "ABCDEFGH"])
+    print("Ledger totals:", [get("Ledger", f"{c}162") for c in "AFGH"],
+          [get("Ledger", f"{c}163") for c in "FGH"], "| kpi:", get("Ledger", "A6"))
+    print("Ledger page 40-50:", [(get("Ledger", f"A{r}"), get("Ledger", f"D{r}"))
+                                 for r in range(40, 48)])
+
     print("\n--- journal totals")
     tot = make4.grow.BOOK_LAST + 1
     print("Book total row", tot, "| debit", get("Book", f"L{tot}"),

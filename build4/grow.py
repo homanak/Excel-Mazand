@@ -23,15 +23,15 @@ from openpyxl.utils import get_column_letter
 SCALE_LAST = 10009          # Scale!10 .. Scale!10009   → 10,000 rows
 PAY_LAST = 2509             # Pay!10   .. Pay!2509     →  2,500 rows
 CRATE_LAST = 2509           # Crate!10 .. Crate!2509   →  2,500 rows
-DATA_LAST = 50009           # mirror sheets (03/04/05/06 Data)
-BOOK_LAST = 50009           # Book!10  .. Book!50009   → 50,000 rows
+DATA_LAST = 60009           # mirror sheets (03/04/05/06 Data)
+BOOK_LAST = 60009           # Book!10  .. Book!60009   → 60,000 rows
 
 def book_blocks():
     """(source sheet, input rows, lines per row, template row) — read lazily so
     a test run can shrink the capacities."""
     return [
         ("Scale", SCALE_LAST - 9, 4, 1206),   # weighbridge: main / counter / POS / counter
-        ("Pay", PAY_LAST - 9, 2, 1508),       # payment: first line / second line
+        ("Pay", PAY_LAST - 9, 6, 1508),       # payment: 2 lines + 3 splits + fee
         ("Crate", CRATE_LAST - 9, 2, 1808),   # basket: first line / second line
     ]
 
@@ -97,6 +97,54 @@ def _style_row(ws, src, dst, cols):
     ws.row_dimensions[dst].height = ws.row_dimensions[src].height
 
 
+PAY_LEGS = (
+    # (account column, amount column, sign: debit/credit, document type)
+    ("AJ", "AK", "both", "تقسیم"),
+    ("AL", "AM", "both", "تقسیم"),
+    ("AN", "AO", "both", "تقسیم"),
+    ("AI", "AH", "debit", "کارمزد"),
+)
+
+
+def pay_legs(bk):
+    """Template lines 3…6 of every payment row: three splits and the bank fee.
+
+    Line 1/2 are re-pointed at the net amounts (Pay!AT / Pay!AU) so the money
+    leg can carry the fee while the account legs stay clean.
+    """
+    tpl = {c: (bk.cell(1508, c)._style) for c in range(1, 18)}
+    h = bk.row_dimensions[1508].height
+    # 1) the two existing legs now read the net amounts
+    for i, (acc, col, tgt) in enumerate((("AD", "AT", 12), ("AF", "AU", 13))):
+        cell = bk.cell(1508 + i, tgt)
+        cell.value = ('=IF(OR(Pay!$' + acc + '159="",Pay!$' + col + '159="",'
+                      'Pay!$' + col + '159=0),"",Pay!$' + col + '159)')
+    # 2) the four new legs
+    for k, (acc, amt, sign, kind) in enumerate(PAY_LEGS):
+        r = 1510 + k
+        guard = f'OR(Pay!${amt}159="",Pay!${amt}159=0)'
+        vals = {
+            1: f'=IF({guard},"",Pay!$B159)',
+            2: f'=IF({guard},"",Pay!$C159)',
+            3: f'=IF({guard},"","{kind}")',
+            4: f'=IF({guard},"",Pay!${acc}159)',
+            5: f'=IF({guard},"",Pay!$P159)',
+            11: f'=IF({guard},"",Pay!${amt}159)',
+            12: (f'=IF({guard},"",IF(Pay!$D159="پرداخت",Pay!${amt}159,""))'
+                 if sign == "both" else f'=IF({guard},"",Pay!${amt}159)'),
+            13: (f'=IF({guard},"",IF(Pay!$D159="دریافت",Pay!${amt}159,""))'
+                 if sign == "both" else None),
+            14: f'=IF({guard},"",Pay!$D159&" — "&Pay!$E159)',
+            15: f'=IF({guard},"",IFERROR(VLOOKUP(Pay!${acc}159,AcctTbl,3,0),""))',
+        }
+        for c in range(1, 18):
+            cell = bk.cell(r, c)
+            cell._style = tpl[c]
+            cell.value = vals.get(c)
+        bk.row_dimensions[r].height = h
+    return len(PAY_LEGS)
+
+
 def grow_entry(wb):
     """Scale / Crate / Pay → capacity, then rebuild Book + its grand total."""
     scale = wb["Scale"]
@@ -107,6 +155,7 @@ def grow_entry(wb):
         clone_rows(ws, 159, 160, PAY_LAST)
 
     bk = wb["Book"]
+    pay_legs(bk)
     for rng in ("A1810:J1810", "N1810:O1810"):
         try:
             bk.unmerge_cells(rng)

@@ -27,12 +27,14 @@ from openpyxl.styles import Alignment, Font                         # noqa: E402
 
 import kit                                                          # noqa: E402
 import master                                                       # noqa: E402
-import bank2                                                        # noqa: E402
+import bank2
+import split                                                        # noqa: E402
 import dash                                                         # noqa: E402
 import links                                                        # noqa: E402
 import unify                                                        # noqa: E402
 
 import grow                                                         # noqa: E402
+import v05                                                          # noqa: E402
 import entry4                                                       # noqa: E402
 import mirror4                                                      # noqa: E402
 import relink                                                       # noqa: E402
@@ -302,7 +304,7 @@ def main(tiny=False, mid=False):
         OUT = os.path.join(ROOT, "Mazandasht_check" if mid else "Mazandasht_tiny")
     if mid:
         grow.SCALE_LAST, grow.PAY_LAST, grow.CRATE_LAST = 60, 40, 40
-        book = 9 + (60 - 9) * 4 + (40 - 9) * 4      # scale 4 lines + pay/crate 2 each
+        book = 9 + (60 - 9) * 4 + (40 - 9) * 6 + (40 - 9) * 2   # 4 scale · 6 pay · 2 crate
         grow.BOOK_LAST = book
         grow.DATA_LAST = book
         grow.ENTRY_MAP = {1807: book, 1808: book, 1809: book,
@@ -312,13 +314,14 @@ def main(tiny=False, mid=False):
         dash.F1_LAST = book
     elif tiny:
         grow.SCALE_LAST, grow.PAY_LAST, grow.CRATE_LAST = 29, 19, 19
-        grow.BOOK_LAST = 129
-        grow.DATA_LAST = 129
-        grow.ENTRY_MAP = {1807: 129, 1808: 129, 1809: 129,
+        grow.BOOK_LAST = 9 + (29 - 9) * 4 + (19 - 9) * 6 + (19 - 9) * 2   # 189
+        grow.DATA_LAST = grow.BOOK_LAST
+        grow.ENTRY_MAP = {1807: grow.BOOK_LAST, 1808: grow.BOOK_LAST,
+                          1809: grow.BOOK_LAST,
                           157: 19, 158: 19, 159: 19, 307: 29, 308: 29, 309: 29}
         entry4.INV_LAST = 29
-        dash.BOOK_ROWS = 129
-        dash.F1_LAST = 9 + 129
+        dash.BOOK_ROWS = grow.BOOK_LAST - 9
+        dash.F1_LAST = grow.BOOK_LAST
     else:
         dash.BOOK_ROWS = grow.BOOK_LAST - 9
         dash.F1_LAST = 9 + dash.BOOK_ROWS
@@ -336,6 +339,8 @@ def main(tiny=False, mid=False):
     print(f"  named {n} «باسکول دیگران» accounts")
     sp = shrk.master(os.path.join(OUT, "00_Master.xlsx"))
     print(f"  partnership: شرکا {len(shrk.PARTNERS)} / Acc +{sp['acc']} / ops +{sp['ops']}")
+    sp = split.master(os.path.join(OUT, "00_Master.xlsx"))
+    print(f"  split/fee: fee account +{sp['acc']} / names {sp['names']}")
     print("   relink:", relink.polish(os.path.join(OUT, "00_Master.xlsx")))
     groups = groups_of(os.path.join(OUT, "00_Master.xlsx"))
 
@@ -348,10 +353,14 @@ def main(tiny=False, mid=False):
     print(" ", info)
     sp = shrk.entry(os.path.join(OUT, "01_Entry.xlsx"), os.path.join(OUT, "00_Master.xlsx"))
     print("   partnership:", sp)
+    sp = split.entry(os.path.join(OUT, "01_Entry.xlsx"), os.path.join(OUT, "00_Master.xlsx"))
+    print("   split/fee:", sp)
     company = letterhead(os.path.join(OUT, "00_Master.xlsx"))
     bill.build(os.path.join(OUT, "01_Entry.xlsx"), company=company)
     bill.build(os.path.join(OUT, "01_Entry.xlsx"), mode="buy", index=7, company=company)
-    print("   Bill + BillBuy: letterhead (seal) + automatic sale / purchase invoices")
+    n_fin = v05.bill_final(os.path.join(OUT, "01_Entry.xlsx"))
+    print(f"   Bill + BillBuy: letterhead (seal) + automatic sale / purchase invoices · "
+          f"مبلغ نهایی ×{n_fin}")
     print("   relink:", relink.polish(os.path.join(OUT, "01_Entry.xlsx")))
 
     if os.path.exists(os.path.join(OUT, "07_Demo.xlsx")):
@@ -362,6 +371,10 @@ def main(tiny=False, mid=False):
         p = os.path.join(OUT, name)
         sheets = mirror4.build(p)
         print(f"  {name}: {sheets} sheets polished")
+
+    vp = v05.report(os.path.join(OUT, "03_Report.xlsx"),
+                    os.path.join(OUT, "00_Master.xlsx"))
+    print("   v05 reports:", vp)
 
     print("02_Bank.xlsx")
     vals = load_cache(os.path.join(OUT, "00_Master.xlsx"))

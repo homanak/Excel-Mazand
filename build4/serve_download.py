@@ -46,7 +46,7 @@ PAGE = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>مازندشت — دانلود نسخه ۰۴ · ویرایش ۵</title>
+<title>مازندشت — دانلود نسخه ۰۴ · ویرایش ۶</title>
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
 <style>
   :root{{--forest:#14453D;--forest2:#1D5B50;--gold:#C89B3C;--terra:#C4623F;
@@ -101,11 +101,11 @@ PAGE = """<!doctype html>
 <div class="wrap">
   <header>
     <p class="kicker">MAZANDASHT · CITRUS SORTING &amp; PACKING</p>
-    <h1>نسخه ۰۴ · ویرایش ۵ — سامانه حسابداری مازندشت</h1>
+    <h1>نسخه ۰۴ · ویرایش ۶ — سامانه حسابداری مازندشت</h1>
     <p class="sub">۹ فایل اکسل آماده، همه در یک پوشه با لینک نسبی؛ دفتر روزنامه ۵۰٬۰۰۰ سطری، بانک ۵٬۰۰۰ تراکنشی،
-       چاپ A4 در تمام شیت‌ها، داشبورد مدیریتی و <b>حساب شرکا با سهم وزنی (ویرایش ۵)</b>.</p>
+       چاپ A4 در تمام شیت‌ها، داشبورد مدیریتی، <b>حساب شرکا با سهم وزنی</b> و در این ویرایش: <b>کارمزد بانک، تقسیم مبلغ بین چند حساب، کد تراکنش، صورت‌حساب چاپی و گزارش بارفروشان</b>.</p>
     <div class="badges">
-      <span class="badge">۹ فایل · ۹۰ شیت</span>
+      <span class="badge">۹ فایل · ۹۴ شیت</span>
       <span class="badge">شراکت: ۲۰ شریک · سهم از وزن</span>
       <span class="badge">کنترل ساختاری: ۰ ایراد</span>
       <span class="badge">Excel 2013 به بالا</span>
@@ -135,7 +135,7 @@ PAGE = """<!doctype html>
     </ol>
   </div>
 
-  <footer>سورتینگ و بسته‌بندی مرکبات «مازندشت» · نسخه ۰۴ · ویرایش ۵ · ۱۴۰۵</footer>
+  <footer>سورتینگ و بسته‌بندی مرکبات «مازندشت» · نسخه ۰۴ · ویرایش ۶ · ۱۴۰۵</footer>
 </div>
 </body>
 </html>

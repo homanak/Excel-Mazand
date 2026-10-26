@@ -131,13 +131,13 @@ def book_structure():
                                 read_only=True, data_only=False)
     bk = wb["Book"]
     print(f"   Book rows: {bk.max_row}   cols: {bk.max_column}")
-    if bk.max_row != 50010:
-        bad(f"Book last row {bk.max_row} ≠ 50010")
+    if bk.max_row != 60010:
+        bad(f"Book last row {bk.max_row} ≠ 60010")
     # sampling the last row of every block
-    want = {10: "Scale", 40009: "Scale", 40010: "Pay", 45009: "Pay",
-            45010: "Crate", 50009: "Crate"}
+    want = {10: "Scale", 40009: "Scale", 40010: "Pay", 55009: "Pay",
+            55010: "Crate", 60009: "Crate"}
     seen = {}
-    for r, row in enumerate(bk.iter_rows(min_row=1, max_row=50010, values_only=True), 1):
+    for r, row in enumerate(bk.iter_rows(min_row=1, max_row=60010, values_only=True), 1):
         if r in want:
             seen[r] = [str(v or "") for v in row[:16]]
     for r, src in want.items():
@@ -169,7 +169,7 @@ def book_structure():
 
     wb = openpyxl.load_workbook(os.path.join(OUT, "01_Entry.xlsx"), data_only=False)
     for sheet, want in (("Scale", "T10009"), ("Crate", "M2509"), ("Pay", "R2509"),
-                        ("Book", "Q50010")):
+                        ("Book", "Q60010")):
         area = str(wb[sheet].print_area or "").replace("$", "")
         if want not in area:
             bad(f"{sheet} print area {area} does not reach {want}")
@@ -215,8 +215,8 @@ def book_structure():
     gp = [ws_g for ws_g in wb["GRep"].iter_rows(min_row=13, max_row=24, min_col=3, max_col=3,
                                                 values_only=True)]
     print("   GRep formula sample:", str(gp[0][0])[:90])
-    if "Book!$O$10:$O$50009" not in str(gp[0][0]):
-        bad("GRep does not sum the full Book range O10:O50009")
+    if "Book!$O$10:$O$60009" not in str(gp[0][0]):
+        bad("GRep does not sum the full Book range O10:O60009")
     print("   Inv print area:", wb["Inv"].print_area, "| Print:", wb["Print"].print_area)
     wb.close()
 
@@ -372,17 +372,17 @@ def cross_links():
 
 
 def mirrors():
-    print("\nMirror files — 50,009-row data blocks")
+    print("\nMirror files — 60,009-row data blocks")
     for name in ("03_Report.xlsx", "04_Inv.xlsx", "05_Bal.xlsx", "06_Buyers.xlsx"):
         p = os.path.join(OUT, name)
         wb = openpyxl.load_workbook(p, read_only=True)
         ws = wb["Data"]
         n = 0
-        for row in ws.iter_rows(min_row=10, max_row=50009, max_col=2, values_only=True):
+        for row in ws.iter_rows(min_row=10, max_row=60009, max_col=2, values_only=True):
             if row[1] not in (None, ""):
                 n += 1
         print(f"   {name:<16} Data max_row {ws.max_row:<7} filled {n}")
-        if ws.max_row < 50009:
+        if ws.max_row < 60009:
             bad(f"{name}: Data only {ws.max_row} rows")
         wb.close()
 
@@ -455,7 +455,7 @@ def partnership():
     names = {n: d.attr_text for n, d in wb.defined_names.items()}
     if names.get("ShrkTbl") != "Sync!$CS$10:$CV$29":
         bad(f"01_Entry: ShrkTbl is {names.get('ShrkTbl')}"); ok = False
-    if "279" not in str(names.get("AcctTbl")):
+    if "280" not in str(names.get("AcctTbl")):
         bad(f"01_Entry: AcctTbl does not reach the partners ({names.get('AcctTbl')})")
     wb.close()
 

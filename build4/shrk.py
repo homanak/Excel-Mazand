@@ -696,7 +696,17 @@ DEMO_PAY = [
      "در جریان", "1405/08/20", "سهم ما از نارنگی شراکتی"),
     ("1405/07/23", "PV-103", "پرداخت", "نقد", "SH02", "", "", 15000000,
      "", "", "سهم ما از تامسون شراکتی"),
+    ("1405/07/25", "PV-104", "پرداخت", "انتقال بانکی", "C006", "BN01", "", 45000000,
+     "", "", "خرید بار + کرایه — با کارمزد و تقسیم"),
+    ("1405/07/26", "PV-105", "دریافت", "انتقال بانکی", "SL001", "BN02", "", 20000000,
+     "", "", "دریافت از بارفروش — با کارمزد"),
 ]
+
+# (index in DEMO_PAY, fee, {split column: (account, amount)})
+DEMO_SPLIT = {
+    3: (2400, {"AJ": ("X004", 30000000), "AL": ("X009", 10000000)}),
+    4: (1500, {}),
+}
 
 
 def demo_rows(wb):
@@ -728,6 +738,14 @@ def demo_rows(wb):
                 cell = pay[f"{col}{r}"]
                 cell.value = v
                 cell._style = pay[f"{col}{p0 - 1}"]._style
+            fee, splits = DEMO_SPLIT.get(i, (None, {}))
+            if fee:
+                pay[f"AH{r}"].value = fee
+            from openpyxl.utils import column_index_from_string, get_column_letter
+            for col, (acc, amt) in splits.items():
+                pay[f"{col}{r}"].value = acc
+                nxt = get_column_letter(column_index_from_string(col) + 1)
+                pay[f"{nxt}{r}"].value = amt
             made += 1
     return made
 
