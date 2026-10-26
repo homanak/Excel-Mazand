@@ -62,6 +62,17 @@ def _box(color="FFDDD5C4"):
     return Border(left=s, right=s, top=s, bottom=s)
 
 
+def _all_codes(last):
+    """``ListAllCodes`` — code column B, as long as the name column C is filled.
+
+    Written from scratch on every build: the account block grew from 259 rows
+    to 280, and an OFFSET/COUNTIF pair that is patched in place is easy to
+    mangle (the old patch once produced ``$C$280:$C$280`` → a one-row list,
+    i.e. a dropdown with a single code).
+    """
+    return f'OFFSET(Sync!$B$10,0,0,MAX(COUNTIF(Sync!$C$10:$C${last},"?*"),1),1)'
+
+
 def _def(wb, name, ref):
     try:
         del wb.defined_names[name]
@@ -74,6 +85,7 @@ def _dvs(ws, ref, spec):
     dv = DataValidation(type=spec["validate"],
                         formula1=("=" + spec["source"]) if spec.get("source") else None)
     dv.allow_blank = True
+    dv.errorStyle = "warning"          # a typed code is accepted (yellow warning only)
     if spec.get("prompt"):
         dv.promptTitle = spec.get("promptTitle", "")
         dv.prompt = spec["prompt"]
@@ -120,10 +132,11 @@ def _extend(wb, last):
         txt = dn.attr_text
         new = re.sub(r"\$([A-Z]{1,3})\$10:\$([A-Z]{1,3})\$\d+",
                      lambda m: f"${m.group(1)}$10:${m.group(2)}${last}", txt)
-        new = re.sub(r"\$C\$\d+", f"$C${last}", new)
+        dn.attr_text = new
         if new != txt:
-            dn.attr_text = new
             n += 1
+    if "ListAllCodes" in wb.defined_names:
+        wb.defined_names["ListAllCodes"].attr_text = _all_codes(last)
     return n
 
 
@@ -144,9 +157,8 @@ def sync(wb):
         txt = dn.attr_text
         new = re.sub(r"\$([A-Z]{1,3})\$10:\$([A-Z]{1,3})\$\d+",
                      lambda m: f"${m.group(1)}$10:${m.group(2)}${SYNC_LAST}", txt)
-        new = re.sub(r"\$C\$\d+", f"$C${SYNC_LAST}", new)
-        if new != txt:
-            dn.attr_text = new
+        dn.attr_text = new
+    wb.defined_names["ListAllCodes"].attr_text = _all_codes(SYNC_LAST)
     return 1
 
 

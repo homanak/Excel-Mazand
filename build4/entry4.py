@@ -111,6 +111,28 @@ def add_inv(wb, style_src="Scale"):
         L.put(ws, f"T{r}", f'=IF($S{r}="✔",N(MAX($T$9:T{r-1}))+1,"")', name=L.EN,
               size=8, bg=L.GREY, color=L.MUTED)
 
+    # ---- یک فاکتور نمونه، تیک‌خورده، تا شیت Print از همان روز اول کار کند
+    demo = [
+        # (row, invoice, date, op, party, item, basket, qty, weight, price, method, due, doc, tick)
+        (10, "INV-1405-001", "1405/07/12", "فروش بار (بارفروش)", "SL001",
+         "پرتقال تامسون", "BK03 – ۹ک مشکی", 0, 2500, 58000,
+         "انتقال بانکی", "1405/08/12", "BS-006", "✔"),
+        (11, "INV-1405-001", "1405/07/12", "فروش بار (بارفروش)", "SL001",
+         "پرتقال تامسون", "BK03 – ۹ک مشکی", 0, 1600, 60000,
+         "انتقال بانکی", "1405/08/12", "BS-015", "✔"),
+        (12, "INV-1405-002", "1405/07/13", "خرید مرکبات", "C002",
+         "پرتقال خونی", "BK01 – ۶ک مشکی", 0, 800, 35000,
+         "چک", "1405/08/20", "BS-004", None),
+    ]
+    if INV_LAST >= 40:
+        for (r, inv_no, day, op, party, item, basket, qty, kg, price,
+             method, due, doc, tick) in demo:
+            for col, val in (("B", inv_no), ("C", day), ("D", op), ("E", party),
+                             ("H", item), ("I", basket), ("J", qty), ("K", kg),
+                             ("L", price), ("P", method), ("Q", due), ("R", doc),
+                             ("S", tick)):
+                ws[f"{col}{r}"] = val
+
     # totals
     tot = INV_LAST + 1
     ws.merge_cells(f"A{tot}:I{tot}")
@@ -203,7 +225,8 @@ def add_print(wb):
               f'=IFERROR(INDEX(Inv!$H$10:$H$2009,MATCH({i+1},Inv!$T$10:$T$2009,0)),"")',
               name=L.FA, size=9, bg=L.WHITE, h="right")
         L.put(ws, f"C{r}",
-              f'=IFERROR(INDEX(Inv!$J$10:$J$2009,MATCH({i+1},Inv!$T$10:$T$2009,0)),"")',
+              f'=IFERROR(IF(INDEX(Inv!$J$10:$J$2009,MATCH({i+1},Inv!$T$10:$T$2009,0))=0,"",'
+              f'INDEX(Inv!$J$10:$J$2009,MATCH({i+1},Inv!$T$10:$T$2009,0))),"")',
               name=L.EN, size=9, bg=L.WHITE, fmt=L.INT)
         L.put(ws, f"D{r}",
               f'=IFERROR(INDEX(Inv!$K$10:$K$2009,MATCH({i+1},Inv!$T$10:$T$2009,0)),"")',

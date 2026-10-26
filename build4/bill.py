@@ -17,12 +17,14 @@ the **purchase** invoice (BillBuy — the load received from a grower), with the
 same engine: only the filter, the wording and the payment direction change.
 """
 import openpyxl
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.worksheet.datavalidation import DataValidation
 
 import grow
 import look as L
 
 SHEET = "Bill"
+ACC_LAST = 280       # 01_Entry ← Sync: account block 10…280 (X022 is the last row)
 ROWS = 16            # invoice lines
 PAY_ROWS = 8         # payment lines
 SCALE_LAST = grow.SCALE_LAST
@@ -145,6 +147,14 @@ def build(path, mode="sale", index=None, company=None, seals=None):
     for col in ("N", "O"):
         ws.column_dimensions[col].width = 20 if col == "N" else 22
 
+    # ------------------------------------------------- a live example on open
+    ws["O2"] = "SL001" if mode == "sale" else "C001"      # the demo parties
+    ws["O2"].fill = PatternFill("solid", fgColor=L.INPUT)
+    ws["O2"].font = Font(name=L.EN, size=11, bold=True, color=L.FOREST)
+    _edge = Side(style="medium", color=L.TERRA)
+    ws["O2"].border = Border(left=_edge, right=_edge, top=_edge, bottom=_edge)
+    ws["O2"].alignment = Alignment(horizontal="center", vertical="center")
+
     # ------------------------------------------------------- letterhead
     co = COMPANY
     ws.merge_cells("A1:B3")                       # letterhead seal box
@@ -204,9 +214,11 @@ def build(path, mode="sale", index=None, company=None, seals=None):
     ws["C7"] = "=$O$8"
     ws["E7"] = "=$O$2"
     ws.merge_cells("G7:H7")
-    ws["G7"] = '=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G$259,2,0),"کد ناشناخته"))'
+    ws["G7"] = (f'=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G${ACC_LAST},2,0),'
+                f'"⚠ این کد در جدول حساب‌ها نیست"))')
     ws.merge_cells("I7:K7")
-    ws["I7"] = '=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G$259,3,0),""))'
+    ws["I7"] = (f'=IF($O$2="","",IFERROR(VLOOKUP($O$2,Sync!$B$10:$G${ACC_LAST},3,0),"")'
+                f'&IFERROR(" · "&VLOOKUP($O$2,Sync!$B$10:$G${ACC_LAST},4,0),""))')
     for ref in ("A7", "C7", "E7", "G7", "I7"):
         C.st(ws[ref], name=L.FA, size=10.5, bold=True, color=L.FOREST, bg=L.MINT,
              border=L.LINE, h="center")
@@ -214,7 +226,8 @@ def build(path, mode="sale", index=None, company=None, seals=None):
     # --------------------------------------------------------------- lines
     ws.merge_cells("A8:K8")
     c = ws["A8"]
-    c.value = "   اقلام بار  —  وزن خالص = (وزن باسکول − وزن سبدها) × (۱ − درصد افت)  و گرد به پایین مضرب ۵ کیلو"
+    c.value = ("   اقلام بار  —  کد طرف حساب را در کادر زرد سمت چپ (O2) بزنید  ·  "
+              "وزن خالص = (وزن باسکول − وزن سبدها) × (۱ − درصد افت) و گرد به پایین مضرب ۵ کیلو")
     C.st(c, name=L.FA, size=10.5, bold=True, color=L.WHITE, bg=L.FOREST, border=L.FOREST,
          h="right")
 
@@ -245,7 +258,7 @@ def build(path, mode="sale", index=None, company=None, seals=None):
                                 f'{cond},{n}),"")')
         idx = f"$L{r}"
         pos = f"({idx}-9)"
-        ws.cell(r, 1).value = f'=IF($B{r}="","",COUNT($B${first}:$B{r}))'
+        ws.cell(r, 1).value = f'=IF($B{r}="","",COUNTA($B${first}:$B{r}))'
         ws.cell(r, 2).value = f'=IF({idx}="","",INDEX(Scale!$B$10:$B${SCALE_LAST},{pos}))'
         ws.cell(r, 3).value = (f'=IF({idx}="","",IF($O$9<>"",$O$9,'
                                 f'INDEX(Scale!$J$10:$J${SCALE_LAST},{pos})))')
@@ -352,9 +365,13 @@ def build(path, mode="sale", index=None, company=None, seals=None):
         pos = f"({idx}-9)"
         ws.cell(r, 1).value = f'=IF({idx}="","",INDEX(Pay!$B$10:$B${PAY_LAST},{pos}))'
         ws.cell(r, 2).value = f'=IF({idx}="","",INDEX(Pay!$E$10:$E${PAY_LAST},{pos}))'
-        ws.cell(r, 3).value = f'=IF({idx}="","",INDEX(Pay!$J$10:$J${PAY_LAST},{pos}))'
-        ws.cell(r, 4).value = f'=IF({idx}="","",INDEX(Pay!$M$10:$M${PAY_LAST},{pos}))'
-        ws.cell(r, 5).value = f'=IF({idx}="","",INDEX(Pay!$K$10:$K${PAY_LAST},{pos}))'
+        ws.cell(r, 3).value = (f'=IF({idx}="","",IF(INDEX(Pay!$J$10:$J${PAY_LAST},{pos})="","",'
+                               f'INDEX(Pay!$J$10:$J${PAY_LAST},{pos})))')
+        ws.cell(r, 4).value = (f'=IF({idx}="","",IF(INDEX(Pay!$M$10:$M${PAY_LAST},{pos})="","",'
+                               f'INDEX(Pay!$M$10:$M${PAY_LAST},{pos})))')
+        # Pay!AT = مبلغ خالص طرف حساب (مبلغ − تقسیم‌ها). با کارمزد و تقسیم،
+        # «چقدر از این پرداخت به حساب این طرف رسید» همین است، نه مبلغ کل.
+        ws.cell(r, 5).value = f'=IF({idx}="","",INDEX(Pay!$AT$10:$AT${PAY_LAST},{pos}))'
         ws.cell(r, 6).value = f'=IF({idx}="","",INDEX(Pay!$L$10:$L${PAY_LAST},{pos}))'
         ws.cell(r, 7).value = f'=IF({idx}="","",INDEX(Pay!$I$10:$I${PAY_LAST},{pos}))'
         ws.merge_cells(start_row=r, start_column=7, end_row=r, end_column=11)
@@ -377,7 +394,7 @@ def build(path, mode="sale", index=None, company=None, seals=None):
     c.value = cfg["pay_total"]
     C.st(c, name=L.FA, size=10, bold=True, color=L.WHITE, bg=L.SKY_D, border=L.SKY_D,
          h="right")
-    c = ws.cell(pt1, 4, f'=SUMIFS(Pay!$K$10:$K${PAY_LAST},Pay!$F$10:$F${PAY_LAST},$O$2,'
+    c = ws.cell(pt1, 4, f'=SUMIFS(Pay!$AT$10:$AT${PAY_LAST},Pay!$F$10:$F${PAY_LAST},$O$2,'
                         f'Pay!$D$10:$D${PAY_LAST},"{cfg["pay_type"]}")')
     C.st(c, name=L.EN, size=10.5, bold=True, color=L.WHITE, bg=L.SKY_D, border=L.SKY_D,
          h="center", fmt=L.INT)
