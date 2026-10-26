@@ -387,6 +387,82 @@ def mirrors():
         wb.close()
 
 
+def partnership():
+    """شراکت — the partner register, the share columns and the partner report."""
+    print("\nPartnership — شرکا، سهم وزنی و گزارش Shrk")
+    wb = openpyxl.load_workbook(os.path.join(OUT, "00_Master.xlsx"))
+    ok = True
+    if "Shrk" not in wb.sheetnames:
+        bad("00_Master: sheet Shrk is missing"); ok = False
+    else:
+        ws = wb["Shrk"]
+        codes = [ws.cell(r, 1).value for r in range(12, 32)]
+        names = [ws.cell(r, 2).value for r in range(12, 32)]
+        print(f"   Shrk: {sum(1 for n in names if n)} named partners · code SH01…SH20 "
+              f"· print {ws.print_area}")
+        if codes[0] != "SH01" or codes[-1] != "SH20":
+            bad("00_Master/Shrk: partner codes are not SH01…SH20"); ok = False
+        if not ws.print_area:
+            bad("00_Master/Shrk: no print area"); ok = False
+        if len(ws.data_validations.dataValidation) < 3:
+            bad("00_Master/Shrk: dropdowns are missing"); ok = False
+    names = {n: d.attr_text for n, d in wb.defined_names.items()}
+    for n in ("ShrkTbl", "ListShrk"):
+        if n not in names:
+            bad(f"00_Master: name {n} is missing"); ok = False
+    acc = wb["Acc"]
+    sh = [acc.cell(r, 1).value for r in range(255, 285)]
+    if "SH01" not in sh or "SH20" not in sh:
+        bad("00_Master/Acc: partner accounts SH01…SH20 are missing"); ok = False
+    op = wb["Op"]
+    ops = [(op.cell(r, 1).value, op.cell(r, 2).value) for r in range(10, 34)]
+    if not any("شراکتی" in str(t) for _, t in ops):
+        bad("00_Master/Op: partnership operations are missing"); ok = False
+    else:
+        print("   Op:", [t for _, t in ops if "شراکتی" in str(t)])
+    wb.close()
+
+    wb = openpyxl.load_workbook(os.path.join(OUT, "01_Entry.xlsx"))
+    sc = wb["Scale"]
+    heads = [sc[f"{c}8"].value for c in ("AQ", "AR", "AS", "AT", "AU", "AV")]
+    if any(h is None for h in heads):
+        bad("01_Entry/Scale: share headers AQ…AV are incomplete"); ok = False
+    else:
+        print("   Scale AQ…AV:", " · ".join(heads))
+    if not any("AQ" in str(dv.sqref) for dv in sc.data_validations.dataValidation):
+        bad("01_Entry/Scale: AQ has no partner dropdown"); ok = False
+    if str(sc.print_area) != "'Scale'!$A$1:$T$10009":
+        bad(f"01_Entry/Scale: print area is {sc.print_area}"); ok = False
+    last = 10009
+    f = str(sc[f"AR{last}"].value or "")
+    if "$AQ" not in f and "*" not in f:
+        bad(f"01_Entry/Scale: AR{last} is not a share formula: {f[:60]}"); ok = False
+    if "Shrk" not in wb.sheetnames:
+        bad("01_Entry: sheet Shrk (partner report) is missing"); ok = False
+    else:
+        ws = wb["Shrk"]
+        print(f"   Shrk report: dims {ws.dimensions} · print {ws.print_area}")
+        if str(ws.print_area) != "'Shrk'!$A$1:$N$189":
+            bad(f"01_Entry/Shrk: print area is {ws.print_area}"); ok = False
+        if str(ws["C9"].value) != "خرید شراکتی (ورود)":
+            bad("01_Entry/Shrk: C9 must hold the partnership-in operation"); ok = False
+        if "MATCH" not in str(ws["O38"].value or ""):
+            bad("01_Entry/Shrk: detail block has no row lookup"); ok = False
+    names = {n: d.attr_text for n, d in wb.defined_names.items()}
+    if names.get("ShrkTbl") != "Sync!$CS$10:$CV$29":
+        bad(f"01_Entry: ShrkTbl is {names.get('ShrkTbl')}"); ok = False
+    if "279" not in str(names.get("AcctTbl")):
+        bad(f"01_Entry: AcctTbl does not reach the partners ({names.get('AcctTbl')})")
+    wb.close()
+
+    wb = openpyxl.load_workbook(os.path.join(OUT, "02_Bank.xlsx"))
+    n = len(wb.defined_names["ListTxnOps"].attr_text.split("$")[-1].split(":")[-1])
+    txt = wb.defined_names["ListTxnOps"].attr_text
+    print(f"   Bank ops table: {txt}")
+    wb.close()
+    return ok
+
+
 def main(verbose=False):
     files = sorted(f for f in os.listdir(OUT) if f.endswith(".xlsx"))
     print(f"v04 files: {len(files)}")
@@ -398,6 +474,7 @@ def main(verbose=False):
     master_cls()
     bank_structure()
     dashboard_cls()
+    partnership()
     cross_links()
     mirrors()
     print("\n" + "=" * 70)

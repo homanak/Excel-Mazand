@@ -6,6 +6,7 @@ from openpyxl.utils import get_column_letter
 
 import grow
 import look as L
+import shrk
 
 
 def polish(wb, name=""):
@@ -45,6 +46,7 @@ def build(path, mirror=True):
         grow.reseat_ranges(wb, {1807: grow.DATA_LAST, 1808: grow.DATA_LAST,
                                 1809: grow.DATA_LAST})
     sheets = polish(wb)
+    shrk.grow_account_ranges(wb)
     wb.calculation.fullCalcOnLoad = True
     wb.save(path)
     return sheets

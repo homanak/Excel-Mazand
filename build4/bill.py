@@ -237,7 +237,10 @@ def build(path, mode="sale", index=None, company=None, seals=None):
         cond = (f'(((Scale!$G$10:$G${SCALE_LAST}=$O$2))'
                 f'*((($O$3="")+(Scale!$B$10:$B${SCALE_LAST}>=$O$3))>0)'
                 f'*((($O$4="")+(Scale!$B$10:$B${SCALE_LAST}<=$O$4))>0)'
-                f'*((Scale!$E$10:$E${SCALE_LAST}<>""){opf}))')
+                f'*((Scale!$E$10:$E${SCALE_LAST}<>""){opf})'
+                # partnership rows carry only our share in the journal, so they
+                # never become a full-value invoice line
+                f'*ISERR(SEARCH("شراکتی",Scale!$E$10:$E${SCALE_LAST})))')
         ws.cell(r, 12).value = (f'=IFERROR(AGGREGATE(15,6,(ROW(Scale!$B$10:$B${SCALE_LAST}))/'
                                 f'{cond},{n}),"")')
         idx = f"$L{r}"

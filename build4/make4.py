@@ -38,6 +38,7 @@ import mirror4                                                      # noqa: E402
 import relink                                                       # noqa: E402
 import bill                                                         # noqa: E402
 import seal                                                         # noqa: E402
+import shrk                                                         # noqa: E402
 
 V02 = os.path.join(ROOT, "Mazandasht_v02")
 V03 = os.path.join(ROOT, "Mazandasht_v03")
@@ -267,9 +268,14 @@ def letterhead(master_path):
 
 
 # ---------------------------------------------------------------------- cache
-def load_cache():
+def load_cache(master_path=None):
     with open(CACHE, encoding="utf-8") as fh:
         data = json.load(fh)
+    if master_path and os.path.exists(master_path):
+        try:                      # the operation list always follows the mother file
+            data["ops"] = master.read_ops(master_path)
+        except Exception:
+            pass
     f1 = {tuple(k.split("|")): v for k, v in data.get("F1", {}).items()}
     f2 = {tuple(k.split("|")): v for k, v in data.get("F2", {}).items()}
     return {"dates": data.get("dates") or [], "ops": data.get("ops") or [],
@@ -290,8 +296,21 @@ def groups_of(path):
 
 
 # ----------------------------------------------------------------------- main
-def main(tiny=False):
-    if tiny:
+def main(tiny=False, mid=False):
+    global OUT
+    if mid or tiny:                           # smoke-test builds → their own folders
+        OUT = os.path.join(ROOT, "Mazandasht_check" if mid else "Mazandasht_tiny")
+    if mid:
+        grow.SCALE_LAST, grow.PAY_LAST, grow.CRATE_LAST = 60, 40, 40
+        book = 9 + (60 - 9) * 4 + (40 - 9) * 4      # scale 4 lines + pay/crate 2 each
+        grow.BOOK_LAST = book
+        grow.DATA_LAST = book
+        grow.ENTRY_MAP = {1807: book, 1808: book, 1809: book,
+                          157: 40, 158: 40, 159: 40, 307: 60, 308: 60, 309: 60}
+        entry4.INV_LAST = 40
+        dash.BOOK_ROWS = book - 9
+        dash.F1_LAST = book
+    elif tiny:
         grow.SCALE_LAST, grow.PAY_LAST, grow.CRATE_LAST = 29, 19, 19
         grow.BOOK_LAST = 129
         grow.DATA_LAST = 129
@@ -315,6 +334,8 @@ def main(tiny=False):
     print(f"  Cls sheet: {n_cls} classifications · owner account X021")
     n = persons(os.path.join(OUT, "00_Master.xlsx"))
     print(f"  named {n} «باسکول دیگران» accounts")
+    sp = shrk.master(os.path.join(OUT, "00_Master.xlsx"))
+    print(f"  partnership: شرکا {len(shrk.PARTNERS)} / Acc +{sp['acc']} / ops +{sp['ops']}")
     print("   relink:", relink.polish(os.path.join(OUT, "00_Master.xlsx")))
     groups = groups_of(os.path.join(OUT, "00_Master.xlsx"))
 
@@ -325,6 +346,8 @@ def main(tiny=False):
             shutil.copy2(src, os.path.join(OUT, name))
     info = entry4.build(os.path.join(OUT, "01_Entry.xlsx"), groups)
     print(" ", info)
+    sp = shrk.entry(os.path.join(OUT, "01_Entry.xlsx"), os.path.join(OUT, "00_Master.xlsx"))
+    print("   partnership:", sp)
     company = letterhead(os.path.join(OUT, "00_Master.xlsx"))
     bill.build(os.path.join(OUT, "01_Entry.xlsx"), company=company)
     bill.build(os.path.join(OUT, "01_Entry.xlsx"), mode="buy", index=7, company=company)
@@ -341,7 +364,7 @@ def main(tiny=False):
         print(f"  {name}: {sheets} sheets polished")
 
     print("02_Bank.xlsx")
-    vals = load_cache()
+    vals = load_cache(os.path.join(OUT, "00_Master.xlsx"))
     demo = list(bank2.DEMO) + bd_rows(os.path.join(OUT, "00_Master.xlsx"))
     bank2.build(os.path.join(OUT, "00_Master.xlsx"), os.path.join(OUT, "02_Bank.xlsx"),
                 demo=demo or None)
@@ -370,4 +393,4 @@ def main(tiny=False):
 
 
 if __name__ == "__main__":
-    main("--tiny" in sys.argv)
+    main("--tiny" in sys.argv, "--mid" in sys.argv)

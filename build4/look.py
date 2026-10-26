@@ -92,7 +92,8 @@ def brand(ws, last, title, sub, icon="", tint=FOREST, rights=None):
     ws.row_dimensions[4].height = 6
     ws.row_dimensions[5].height = 6
     for c in range(1, last + 1):
-        ws.cell(1, c).fill = fill(tint)
+        for r in (1, 2, 3):          # the ribbon is dark: white type needs it
+            ws.cell(r, c).fill = fill(tint)
         ws.cell(4, c).fill = fill(GOLD)
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last)
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last)

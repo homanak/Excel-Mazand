@@ -445,6 +445,10 @@ def build(path, groups=None):
     dv_resize(wb["Crate"], {159: grow.CRATE_LAST})
     dv_resize(wb["Pay"], {159: grow.PAY_LAST})
 
+    import shrk
+    shrk.renumber(wb["Scale"], grow.SCALE_LAST)
+    shrk.renumber(wb["Pay"], grow.PAY_LAST)
+    shrk.renumber(wb["Crate"], grow.CRATE_LAST)
     tips = apply_tips(wb)
     add_inv(wb)
     add_print(wb)

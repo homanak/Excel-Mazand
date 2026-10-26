@@ -17,3 +17,7 @@ download_v04/
 # generated at build time (company seal for the invoices)
 build4/_seal.png
 build4/_preview_*.png
+
+# smoke-test builds
+Mazandasht_check/
+Mazandasht_tiny/

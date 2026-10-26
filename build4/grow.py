@@ -48,7 +48,8 @@ def clone_rows(ws, src_row, first, last, cols=None):
     for r in range(first, last + 1):
         for c, (val, sty) in tpl.items():
             cell = ws.cell(r, c)
-            cell.value = val
+            # a cloned row must point at *itself*, not at the template row
+            cell.value = _shift_row(val, src_row, r) if isinstance(val, str) else val
             cell._style = sty
         ws.row_dimensions[r].height = height
 
