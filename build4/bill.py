@@ -107,6 +107,39 @@ def _sign_seal(ws, seal_path, anchor):
         pass
 
 
+IDX_COL = {"sale": "BB", "buy": "BC"}      # hidden counters on Scale
+
+
+def _index(wb, cfg, mode):
+    """Running count of the rows this invoice shows, on ``Scale`` (hidden).
+
+    ``Scale!BB`` counts the loads of ``Bill!$O$2`` and ``BC`` those of
+    ``BillBuy!$O$2``; the invoice then simply finds the 1st, 2nd, … row with
+    ``MATCH``.  Every condition of the old AGGREGATE array lives here, only now
+    it is evaluated once per row instead of once per invoice line — which is
+    also what makes the sheet checkable by the calculation engine.
+    """
+    sc = wb["Scale"]
+    col = IDX_COL[mode]
+    sheet = cfg["sheet"]
+    op = cfg["op"]
+    for r in range(10, SCALE_LAST + 1):
+        conds = [f'$G{r}={sheet}!$O$2',
+                 f'$E{r}<>""',
+                 f'ISERR(SEARCH("شراکتی",$E{r}))',
+                 f'($O$3="")+($B{r}>=$O$3)>0',
+                 f'($O$4="")+($B{r}<=$O$4)>0']
+        if op:
+            conds.append(f'ISNUMBER(SEARCH("{op}",$E{r}))')
+        sc[f"{col}{r}"].value = (f'=IF($G{r}="",N({col}{r - 1}),'
+                                 f'IF(AND({",".join(conds)}),N({col}{r - 1})+1,'
+                                 f'N({col}{r - 1})))')
+        sc[f"{col}{r}"].font = C.Font(name=L.EN, size=8, color="FF8C8677")
+    sc.column_dimensions[col].hidden = True
+    sc.column_dimensions[col].width = 9
+    return col
+
+
 def _dvs(ws, cfg):
     """Dropdowns for the manual-override columns."""
     dv_prod = DataValidation(type="list", formula1="=ListProducts", allow_blank=True,
@@ -223,6 +256,20 @@ def build(path, mode="sale", index=None, company=None, seals=None):
         C.st(ws[ref], name=L.FA, size=10.5, bold=True, color=L.FOREST, bg=L.MINT,
              border=L.LINE, h="center")
 
+    # ------------------------------------- why the invoice is (still) empty
+    idx_col = IDX_COL[mode]
+    C.st(ws["N12"], name=L.FA, size=8.5, bold=True, color=L.MUTED, bg=L.SAND2,
+         border=L.LINE, h="right")
+    ws["N12"].value = "وضعیت فاکتور"
+    c = ws["O12"]
+    mx = f"MAX(Scale!${idx_col}$10:${idx_col}${SCALE_LAST})"
+    c.value = (f'=IF($O$2="","⚠ کد طرف حساب خالی است — کادر زرد O2 را پر کنید",'
+               f'IF({mx}=0,"⚠ برای این کد باری پیدا نشد",'
+               f'"✓ "&{mx}&" ردیف بار برای این کد"&IF({mx}>{ROWS},'
+               f'" (تا "&{ROWS}&" ردیف چاپ می‌شود)","")))')
+    C.st(c, name=L.FA, size=8.5, bold=True, color=L.FOREST, bg=L.MINT, border=L.LINE,
+         h="right")
+
     # --------------------------------------------------------------- lines
     ws.merge_cells("A8:K8")
     c = ws["A8"]
@@ -243,19 +290,14 @@ def build(path, mode="sale", index=None, company=None, seals=None):
 
     first = 11
     last = first + ROWS - 1
+    _index(wb, cfg, mode)                    # hidden helper column on Scale
     for r in range(first, last + 1):
         n = r - 10
-        opf = (f'*ISNUMBER(SEARCH("{cfg["op"]}",Scale!$E$10:$E${SCALE_LAST}))'
-               if cfg["op"] else '')
-        cond = (f'(((Scale!$G$10:$G${SCALE_LAST}=$O$2))'
-                f'*((($O$3="")+(Scale!$B$10:$B${SCALE_LAST}>=$O$3))>0)'
-                f'*((($O$4="")+(Scale!$B$10:$B${SCALE_LAST}<=$O$4))>0)'
-                f'*((Scale!$E$10:$E${SCALE_LAST}<>""){opf})'
-                # partnership rows carry only our share in the journal, so they
-                # never become a full-value invoice line
-                f'*ISERR(SEARCH("شراکتی",Scale!$E$10:$E${SCALE_LAST})))')
-        ws.cell(r, 12).value = (f'=IFERROR(AGGREGATE(15,6,(ROW(Scale!$B$10:$B${SCALE_LAST}))/'
-                                f'{cond},{n}),"")')
+        # k-th matching load. MATCH on the helper counter works in every
+        # spreadsheet app — AGGREGATE(15,…) quietly returns nothing in Google
+        # Sheets and in some WPS builds, which is why the invoice stayed empty.
+        ws.cell(r, 12).value = (f'=IFERROR(MATCH({n},Scale!${idx_col}$10:'
+                                f'${idx_col}${SCALE_LAST},0)+9,"")')
         idx = f"$L{r}"
         pos = f"({idx}-9)"
         ws.cell(r, 1).value = f'=IF($B{r}="","",COUNTA($B${first}:$B{r}))'

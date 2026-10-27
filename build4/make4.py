@@ -35,6 +35,7 @@ import unify                                                        # noqa: E402
 
 import grow                                                         # noqa: E402
 import v05                                                          # noqa: E402
+import names5                                                       # noqa: E402
 import entry4                                                       # noqa: E402
 import mirror4                                                      # noqa: E402
 import relink                                                       # noqa: E402
@@ -399,6 +400,9 @@ def main(tiny=False, mid=False):
     shutil.move(tmp, os.path.join(OUT, "08_Dash.xlsx"))
     print("  -> 08_Dash.xlsx", os.path.getsize(os.path.join(OUT, "08_Dash.xlsx")) // 1024,
           "KB")
+    fixed = names5.fix_all(OUT)             # «INFO» → 00_Master in every help text
+    print("   نام‌های قدیمی اصلاح‌شده:", {k: v for k, v in fixed.items() if v})
+
     readme = os.path.join(HERE, "README_v04.md")
     if os.path.exists(readme):
         shutil.copy2(readme, os.path.join(OUT, "README.md"))
