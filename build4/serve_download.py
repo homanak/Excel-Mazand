@@ -87,6 +87,14 @@ PAGE = """<!doctype html>
   .card .row{{display:flex;justify-content:space-between;align-items:center;margin-top:6px}}
   .card code{{font-size:11.5px;color:var(--muted);direction:ltr}}
   .card a{{font-size:13px;font-weight:700;color:var(--terra);text-decoration:none}}
+  .livecard{{margin:18px 0 6px;display:flex;gap:16px;align-items:center;justify-content:space-between;
+        flex-wrap:wrap;background:linear-gradient(135deg,#14453D,#2C6E5F);color:#fff;border-radius:16px;
+        padding:16px 20px;box-shadow:0 10px 26px rgba(20,69,61,.18)}}
+  .livecard b{{display:block;font-size:15px;color:#F3D9A4;margin-bottom:3px}}
+  .livecard span{{font-size:12.6px;color:#D8E6E0}}
+  .livecard a{{background:#F7EFD9;color:#14453D;border-radius:10px;padding:9px 16px;
+        font-weight:800;text-decoration:none;font-size:13px;white-space:nowrap}}
+  .livecard a:hover{{background:#fff}}
   .card a:hover{{text-decoration:underline}}
   .note{{background:#fff;border:1px solid var(--line);border-right:5px solid var(--sage);
         border-radius:14px;padding:18px 20px;font-size:13.6px;color:#4E4A43}}
@@ -118,6 +126,24 @@ PAGE = """<!doctype html>
       <span class="size">{zipsize}</span></a>
     <a class="ghost" href="/f/README.md" download>راهنمای فارسی (README)</a>
   </div>
+
+  <div class="livecard">
+    <div>
+      <b>همین‌جا در مرورگر ببینید — نسخهٔ زنده</b>
+      <span>نمایشگر زندهٔ ۹ فایل: شیت‌ها را مثل اکسل می‌بینید، روی لینک‌ها کلیک می‌کنید و
+        نقشهٔ ارتباط فایل‌ها (Sync، ارجاع فرمول، لینک نسبی) را زنده می‌بینید. نیازی به اکسل نیست.</span>
+    </div>
+    <a id="liveGo" href="#">باز کردن نمایشگر زنده ↗</a>
+  </div>
+  <script>
+    (function(){
+      var a = document.getElementById('liveGo');
+      if(!a) return;
+      a.href = /^\d+-/.test(location.hostname)
+        ? location.protocol + '//' + location.hostname.replace(/^\d+-/, '8080-') + '/'
+        : location.protocol + '//' + location.hostname + ':8080/';
+    })();
+  </script>
 
   <h2>دانلود فایل‌به‌فایل</h2>
   <div class="grid">

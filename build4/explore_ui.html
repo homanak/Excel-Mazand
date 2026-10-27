@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مازندشت — نمایشگر زندهٔ ارتباط فایل‌ها</title>
+<style>
+:root{
+  --forest:#14453D; --forest2:#1C5A4E; --gold:#C89B3C; --terra:#C4623F;
+  --sage:#7FA99B; --cream:#FBF8F1; --sand:#F3EADB; --mint:#E4F0E8;
+  --input:#FFF4D6; --line:#DDD5C4; --ink:#2B2A26; --muted:#8C8677;
+  --shadow:0 1px 2px rgba(20,69,61,.06),0 8px 24px rgba(20,69,61,.07);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:linear-gradient(180deg,#F7F3EA 0%,var(--cream) 220px);
+  color:var(--ink); font-family:"Vazirmatn","IRANSans","B Nazanin",Tahoma,system-ui,sans-serif;
+  font-size:14px; display:flex; flex-direction:column; min-height:100vh;
+}
+button{font-family:inherit; cursor:pointer}
+a{color:inherit}
+/* ---------- header ---------- */
+header.top{
+  display:flex; align-items:center; gap:16px; padding:12px 20px;
+  background:var(--forest); color:#fff; box-shadow:var(--shadow); flex-wrap:wrap;
+}
+.brand{display:flex; flex-direction:column; line-height:1.5}
+.brand b{font-size:17px; letter-spacing:.2px}
+.brand span{font-size:11.5px; color:#CBDCD5}
+.stats{display:flex; gap:8px; flex-wrap:wrap; margin-inline-start:auto}
+.pill{background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+  padding:4px 10px; border-radius:999px; font-size:11.5px; white-space:nowrap}
+.pill b{color:#F3D9A4; font-weight:700}
+.searchbox{position:relative; flex:1 1 240px; max-width:360px}
+.searchbox input{width:100%; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.10); color:#fff; font-family:inherit; font-size:12.5px}
+.searchbox input::placeholder{color:#BFD3CB}
+.searchbox input:focus{outline:2px solid var(--gold); background:rgba(255,255,255,.16)}
+.hits{position:absolute; z-index:40; top:38px; inset-inline:0; max-height:340px; overflow:auto;
+  background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); display:none}
+.hits.on{display:block}
+.hit{padding:7px 10px; border-bottom:1px solid #F0EADC; font-size:12px; cursor:pointer; display:flex; gap:8px}
+.hit:hover{background:var(--mint)}
+.hit .where{color:var(--forest); font-weight:700; white-space:nowrap}
+.hit .what{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl}
+/* ---------- tabs ---------- */
+nav.tabs{display:flex; gap:6px; padding:10px 20px 0; align-items:center}
+nav.tabs button{
+  border:1px solid var(--line); border-bottom:none; background:#fff; color:var(--forest);
+  padding:8px 16px; border-radius:10px 10px 0 0; font-size:13px; font-weight:700; opacity:.65
+}
+nav.tabs button.on{opacity:1; background:var(--cream); box-shadow:0 -2px 0 var(--gold) inset}
+nav.tabs .spacer{flex:1}
+nav.tabs .tour-btn{border:1px solid var(--gold); background:var(--input); border-radius:10px;
+  padding:7px 14px; font-weight:700; color:#6B4E10; opacity:1; margin-bottom:4px}
+nav.tabs .tour-btn.on{background:var(--gold); color:#fff}
+/* ---------- layout ---------- */
+main{flex:1; display:grid; grid-template-columns:210px minmax(0,1fr) 290px; gap:14px; padding:12px 20px 18px; align-items:start}
+@media (max-width:1180px){ main{grid-template-columns:180px minmax(0,1fr)} #inspector{grid-column:1/-1} }
+@media (max-width:820px){ main{grid-template-columns:1fr} #rail{order:2} }
+aside,section{min-width:0}
+.card{background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow)}
+/* ---------- rail ---------- */
+#rail{display:flex; flex-direction:column; gap:12px; position:sticky; top:12px; max-height:calc(100vh - 24px)}
+#rail .card{padding:10px}
+.rail-title{font-size:11.5px; font-weight:700; color:var(--muted); margin:0 2px 8px; letter-spacing:.3px}
+.filechip{display:flex; align-items:center; gap:8px; width:100%; text-align:right; border:1px solid transparent;
+  background:transparent; padding:7px 8px; border-radius:9px; font-size:12.5px; color:var(--ink)}
+.filechip:hover{background:var(--sand)}
+.filechip.on{background:var(--mint); border-color:#C7DED2; font-weight:700; color:var(--forest)}
+.filechip .dot{width:8px;height:8px;border-radius:50%; background:var(--sage); flex:none}
+.filechip .nm{font-family:Tahoma; font-size:10.5px; color:var(--muted); direction:ltr}
+.filechip .ct{margin-inline-start:auto; font-size:10.5px; color:var(--muted)}
+#sheets{overflow:auto; max-height:42vh}
+.sheetbtn{display:flex; align-items:center; gap:6px; width:100%; text-align:right; background:transparent;
+  border:none; padding:6px 8px; border-radius:8px; font-size:12.5px; color:var(--ink)}
+.sheetbtn:hover{background:var(--sand)}
+.sheetbtn.on{background:var(--forest); color:#fff}
+.sheetbtn .dim{margin-inline-start:auto; font-size:10px; color:var(--muted); direction:ltr}
+.sheetbtn.on .dim{color:#BFD3CB}
+.sheetbtn .fl{color:var(--gold); font-size:10px}
+/* ---------- stage ---------- */
+#stage{display:flex; flex-direction:column; gap:10px; min-width:0}
+.crumbs{display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; color:var(--muted)}
+.crumbs b{color:var(--forest)}
+.crumbs .tag{background:var(--sand); border:1px solid var(--line); border-radius:999px; padding:2px 9px; direction:ltr; font-family:Tahoma; font-size:10.5px}
+.crumbs .grow{flex:1}
+.toggle{display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--line);
+  border-radius:9px; padding:5px 10px; font-size:11.5px; color:var(--forest); font-weight:700}
+.toggle input{accent-color:var(--forest)}
+#gridwrap{overflow:auto; max-height:calc(100vh - 230px); background:#fff; border:1px solid var(--line);
+  border-radius:12px; box-shadow:var(--shadow)}
+table.sheet{border-collapse:separate; border-spacing:0; table-layout:fixed; direction:ltr; background:#fff}
+table.sheet th.colh{position:sticky; top:0; z-index:5; background:var(--sand); color:var(--muted);
+  font:600 10.5px Tahoma; height:22px; border-bottom:1px solid var(--line); border-inline-end:1px solid #EDE6D7}
+table.sheet[dir="rtl"] th.rowh{right:0}
+table.sheet[dir="ltr"] th.rowh{left:0}
+table.sheet th.rowh{position:sticky; z-index:4; background:var(--sand); color:var(--muted);
+  font:10.5px Tahoma; width:38px; min-width:38px; border-inline-end:1px solid var(--line);
+  border-bottom:1px solid #EDE6D7; text-align:center}
+table.sheet th.corner{z-index:6; top:0}
+td.c{overflow:hidden; padding:1px 4px; vertical-align:middle; border-bottom:1px solid #F0EADC;
+  border-inline-end:1px solid #F0EADC; line-height:1.35; white-space:pre-wrap; word-break:break-word}
+td.c.num{direction:ltr; text-align:left}
+td.c.f{color:#8C8677}
+td.c .fx{font:9px Tahoma; color:#C6A98F; margin-inline-start:3px}
+td.c.lnk{color:#125C8B; text-decoration:underline; text-underline-offset:2px; cursor:pointer; background-image:linear-gradient(#EAF4FA,#EAF4FA)}
+td.c.lnk:hover{background-image:linear-gradient(#DCEDF7,#DCEDF7)}
+td.c.sel{outline:2px solid var(--gold); outline-offset:-2px; background-image:linear-gradient(#FFF3D6,#FFF3D6)!important}
+td.c.pulse{animation:pulse 1.1s ease-out 2}
+@keyframes pulse{0%{box-shadow:inset 0 0 0 3px rgba(196,98,63,.9)}100%{box-shadow:inset 0 0 0 0 rgba(196,98,63,0)}}
+tr.hid td,tr.hid th{opacity:.38}
+td.hidcol{opacity:.35}
+.note{font-size:11.5px; color:var(--muted); padding:6px 10px; background:var(--sand);
+  border:1px solid var(--line); border-radius:9px}
+/* ---------- inspector ---------- */
+#inspector{position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto}
+#inspector .card{padding:12px}
+#inspector h3{margin:0 0 8px; font-size:13px; color:var(--forest); display:flex; align-items:center; gap:6px}
+#inspector .ref{direction:ltr; font:700 11px Tahoma; background:var(--sand); border:1px solid var(--line);
+  border-radius:6px; padding:1px 6px; color:var(--forest)}
+.sec{border-top:1px dashed var(--line); padding-top:9px; margin-top:9px}
+.sec h4{margin:0 0 6px; font-size:11.5px; color:var(--muted); font-weight:700; letter-spacing:.2px}
+.val{direction:ltr; text-align:left; font:12px Tahoma; background:var(--cream); border:1px solid var(--line);
+  border-radius:7px; padding:6px 8px; max-height:120px; overflow:auto; white-space:pre-wrap; word-break:break-word}
+.fxbox{direction:ltr; text-align:left; font:11px/1.6 ui-monospace,Menlo,Consolas,monospace; color:#3C4A45;
+  background:#F4F7F5; border:1px solid #DCE6E0; border-radius:7px; padding:6px 8px; max-height:150px; overflow:auto; white-space:pre-wrap}
+.chip{display:inline-flex; align-items:center; gap:4px; background:var(--mint); border:1px solid #C7DED2;
+  color:var(--forest); border-radius:999px; padding:3px 9px; font-size:11px; margin:0 0 4px 4px; cursor:pointer}
+.chip:hover{background:#D3E8DB}
+.chip.file{background:#F6EEDC; border-color:#E7D6AF; color:#6B4E10}
+.chip.warn{background:#FBE9E3; border-color:#EBC7B8; color:#8B3A22}
+.empty{color:var(--muted); font-size:11.5px}
+.rowbtn{display:flex; align-items:center; gap:6px; width:100%; text-align:right; background:#fff; border:1px solid var(--line);
+  border-radius:8px; padding:5px 8px; font-size:11.5px; margin-bottom:5px}
+.rowbtn:hover{background:var(--sand)}
+.rowbtn .w{color:var(--forest); font-weight:700; white-space:nowrap}
+.rowbtn .t{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px}
+/* ---------- map ---------- */
+.mapbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px}
+.mapbar .seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden}
+.mapbar .seg button{border:none; background:#fff; padding:6px 12px; font-size:12px; color:var(--forest)}
+.mapbar .seg button.on{background:var(--forest); color:#fff}
+.mapbar label{font-size:11.5px; color:var(--muted); display:inline-flex; gap:5px; align-items:center}
+#svgwrap{background:radial-gradient(#FCFAF5,#F4EEE2); border:1px solid var(--line); border-radius:12px;
+  overflow:hidden; box-shadow:var(--shadow)}
+svg text{font-family:inherit; user-select:none}
+path.flow{stroke-dasharray:1 7; animation:dashmove 1.1s linear infinite}
+@keyframes dashmove{to{stroke-dashoffset:-8}}
+@media (prefers-reduced-motion: reduce){path.flow{animation:none}}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--muted); padding:8px 4px}
+.explain{display:flex; flex-direction:column; gap:5px; background:#fff; border:1px solid var(--line);
+  border-radius:12px; padding:11px 14px; font-size:12px; color:#4C5A55; line-height:1.85; margin-top:10px}
+.explain>b{color:var(--forest); font-size:12.5px}
+.explain .tag{background:var(--sand); border:1px solid var(--line); border-radius:6px; padding:0 5px;
+  font-family:Tahoma; font-size:10.5px; color:var(--forest); direction:ltr; display:inline-block}
+.legend i{display:inline-block; width:16px; height:0; border-top-width:2px; margin-inline-end:5px; vertical-align:middle}
+.mnode{cursor:pointer}
+.mnode:hover circle{stroke:var(--gold); stroke-width:2.5}
+#mapinfo{margin-top:10px}
+.tbl{width:100%; border-collapse:collapse; font-size:11.5px}
+.tbl th,.tbl td{padding:5px 8px; border-bottom:1px solid #F0EADC; text-align:right}
+.tbl th{color:var(--muted); font-weight:700; font-size:10.5px}
+.tbl tr:hover td{background:var(--cream)}
+.bar{height:7px; border-radius:4px; background:linear-gradient(90deg,var(--sage),var(--forest)); display:inline-block; vertical-align:middle}
+/* ---------- tour ---------- */
+#tourbar{position:fixed; inset-inline:0; bottom:0; z-index:60; display:none; padding:10px 20px 14px;
+  background:linear-gradient(180deg,rgba(251,248,241,.6),#FBF8F1 40%)}
+#tourbar.on{display:block}
+#tourbar .inner{max-width:1180px; margin:0 auto; background:var(--forest); color:#fff; border-radius:14px;
+  box-shadow:0 10px 30px rgba(20,69,61,.35); padding:12px 16px; display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+#tourbar .txt{flex:1; min-width:240px}
+#tourbar .txt b{display:block; font-size:13.5px; margin-bottom:3px; color:#F3D9A4}
+#tourbar .txt p{margin:0; font-size:12px; color:#DDEAE4; line-height:1.7}
+#tourbar .step{font:11px Tahoma; color:#BFD3CB}
+#tourbar button{border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.12); color:#fff;
+  border-radius:9px; padding:6px 12px; font-size:12px}
+#tourbar button:hover{background:rgba(255,255,255,.22)}
+#tourbar .prog{height:4px; background:rgba(255,255,255,.18); border-radius:3px; overflow:hidden; width:100%; margin-top:8px}
+#tourbar .prog i{display:block; height:100%; background:var(--gold); width:0; transition:width .4s}
+.toast{position:fixed; bottom:22px; inset-inline-start:22px; z-index:80; background:var(--forest); color:#fff;
+  padding:10px 14px; border-radius:10px; font-size:12.5px; box-shadow:var(--shadow); opacity:0; transform:translateY(8px);
+  transition:.25s; pointer-events:none; max-width:420px}
+.toast.on{opacity:1; transform:none}
+footer{padding:2px 20px 14px; color:var(--muted); font-size:11px; display:flex; gap:14px; flex-wrap:wrap}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <b>مازندشت — نمایشگر زندهٔ ارتباط فایل‌ها</b>
+    <span>همان ۹ فایلی که دانلود کرده‌اید؛ اینجا بدون اکسل باز می‌شوند و لینک‌هایشان کار می‌کند</span>
+  </div>
+  <div class="searchbox">
+    <input id="q" placeholder="جست‌وجو در نوشته‌ها و فرمول‌های ۹ فایل…  (مثلاً C001 یا OpTbl)">
+    <div class="hits" id="hits"></div>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<nav class="tabs">
+  <button data-view="sheet" class="on">کاربرگ</button>
+  <button data-view="map">نقشهٔ ارتباطات</button>
+  <div class="spacer"></div>
+  <button class="tour-btn" id="tourBtn">▶ تور زنده</button>
+</nav>
+
+<main>
+  <aside id="rail">
+    <div class="card">
+      <p class="rail-title">فایل‌ها</p>
+      <div id="files"></div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;min-height:0">
+      <p class="rail-title">شیت‌ها</p>
+      <div id="sheets"></div>
+    </div>
+  </aside>
+
+  <section id="stage">
+    <div class="crumbs" id="crumbs"></div>
+
+    <div id="view-sheet">
+      <div id="gridwrap"><table class="sheet" id="grid"></table></div>
+      <div class="note" id="capNote" style="margin-top:8px"></div>
+    </div>
+
+    <div id="view-map" class="hide">
+      <div class="mapbar">
+        <div class="seg" id="mapmode">
+          <button data-mode="file" class="on">سطح فایل</button>
+          <button data-mode="sheet">سطح شیت</button>
+        </div>
+        <label><input type="checkbox" id="kFormula" checked> ارجاع فرمول</label>
+        <label><input type="checkbox" id="kFile" checked> باز کردن فایل</label>
+        <label><input type="checkbox" id="kSheet" checked> پرش شیت</label>
+        <label><input type="checkbox" id="kSync" checked> حلقهٔ Sync</label>
+        <label>حداقل ارجاع <input type="range" id="kMin" min="1" max="20" value="1" style="width:90px"></label>
+        <label><input type="checkbox" id="kFlow" checked> جریان متحرک</label>
+        <span id="mapHint" style="font-size:11.5px;color:var(--muted)"></span>
+      </div>
+      <div id="svgwrap"></div>
+      <div class="explain">
+        <b>این سیستم چطور با هم حرف می‌زند؟</b>
+        <span><b>۱)</b> فایل مادر <span class="tag">00_Master</span> تنها جای ورود دادهٔ ثابت است: حساب‌ها، عملیات، سبدها، بانک‌ها.</span>
+        <span><b>۲)</b> هر فایل یک شیت <span class="tag">Sync</span> قفل‌شده دارد که همان داده‌ها را نگه می‌دارد؛ نام‌هایی مثل <span class="tag">AcctTbl</span> و <span class="tag">OpTbl</span> به همین شیت اشاره می‌کنند، پس همهٔ فرمول‌ها یک منبع دارند.</span>
+        <span><b>۳)</b> شیت‌های هر فایل از Sync خودش می‌خوانند؛ کارت‌های <span class="tag">Home</span> و نوار «فایل‌های همراه» با مسیر نسبی فایل‌ها را به هم وصل می‌کنند.</span>
+      </div>
+      <div class="legend">
+        <span><i style="border-top:2px solid #7FA99B"></i>ارجاع فرمول (شیت → شیت)</span>
+        <span><i style="border-top:2px dashed #C89B3C"></i>باز کردن فایل دیگر</span>
+        <span><i style="border-top:1px solid #9AA6A0"></i>پرش به شیت</span>
+        <span><i style="border-top:3px double #C4623F"></i>کپی Sync از فایل مادر</span>
+        <span>اندازهٔ دایره = تعداد ارجاع</span>
+      </div>
+      <div id="mapinfo" class="card" style="padding:12px"></div>
+    </div>
+  </section>
+
+  <aside id="inspector">
+    <div class="card" id="inspBody"></div>
+  </aside>
+</main>
+
+<div id="tourbar"><div class="inner">
+  <div class="txt"><b id="tTitle"></b><p id="tText"></p></div>
+  <span class="step" id="tStep"></span>
+  <button id="tPrev">◀ قبلی</button>
+  <button id="tPlay">توقف</button>
+  <button id="tNext">بعدی ▶</button>
+  <button id="tStop">بستن</button>
+  <div class="prog"><i id="tProg"></i></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<footer>
+  <span id="footNote">در حال بارگذاری…</span>
+  <span style="margin-inline-start:auto">این نمایشگر فقط می‌خواند؛ هیچ فایلی تغییر نمی‌کند</span>
+</footer>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const state = { file:null, sheet:null, cell:null, view:'sheet', meta:null, payload:null,
+                showFormulas:false, mapMode:'file', edges:null, flow:null, sel:null };
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(msg, ms=4200){const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'), ms);}
+function colLetter(n){let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
+function colIndex(l){let n=0;for(const ch of l)n=n*26+(ch.charCodeAt(0)-64);return n;}
+function splitRef(ref){const m=/^([A-Z]+)(\d+)$/.exec(ref);return m?{c:colIndex(m[1]),r:+m[2]}:null;}
+
+async function api(path){
+  const r = await fetch(path);
+  if(!r.ok) throw new Error(path+' → '+r.status);
+  return r.json();
+}
+
+/* ------------------------------------------------------------ boot */
+async function boot(){
+  state.meta = await api('/api/meta');
+  const t = state.meta.totals;
+  $('#stats').innerHTML =
+    `<span class="pill"><b>${t.files}</b> فایل</span>` +
+    `<span class="pill"><b>${t.sheets}</b> شیت</span>` +
+    `<span class="pill"><b>${t.links}</b> لینک</span>` +
+    `<span class="pill"><b>${t.edges}</b> ارتباط</span>`;
+  $('#footNote').textContent = `ایندکس: ${state.meta.generated} · ساخته‌شده از پوشهٔ Mazandasht_v04`;
+  drawFiles();
+  const first = pickStart();
+  await openSheet(first.f, first.s, first.cell || null);
+}
+
+function firstSheet(fileName, prefer){
+  const f = state.meta.files.find(x=>x.name===fileName);
+  if(!f) return null;
+  const has = n => f.sheets.some(s=>s.name===n);
+  if(prefer && has(prefer)) return prefer;
+  for(const n of ['Home','Dash','Ov','Acc','Inv','Txn','LBRep','Reg'])
+    if(has(n)) return n;
+  const skip = new Set(['Data','Sync','Help']);
+  const first = f.sheets.find(s=>!skip.has(s.name));
+  return (first || f.sheets[0]).name;
+}
+function pickStart(){
+  const f = state.meta.files.find(f=>f.name==='01_Entry.xlsx') || state.meta.files[0];
+  return {f:f.name, s:firstSheet(f.name,'Home')};
+}
+
+function drawFiles(){
+  const box = $('#files'); box.innerHTML='';
+  for(const f of state.meta.files){
+    const b = document.createElement('button');
+    b.className='filechip'+(f.name===state.file?' on':'');
+    b.innerHTML = `<span class="dot"></span><span>${esc(f.label)}</span>
+      <span class="nm">${esc(f.name.replace('.xlsx',''))}</span>
+      <span class="ct">${f.sheets.length}</span>`;
+    b.onclick = ()=> openSheet(f.name, f.sheets[0].name);
+    box.appendChild(b);
+  }
+}
+
+function drawSheets(){
+  const box = $('#sheets'); box.innerHTML='';
+  const f = state.meta.files.find(f=>f.name===state.file);
+  for(const s of f.sheets){
+    const b = document.createElement('button');
+    b.className='sheetbtn'+(s.name===state.sheet?' on':'');
+    b.innerHTML = `${s.state!=='visible'?'👁‍🗨 ':''}${esc(s.name)}${s.links?' <span class="fl">↗</span>':''}
+      <span class="dim">${s.rows}×${s.cols}</span>`;
+    b.onclick = ()=> openSheet(state.file, s.name);
+    box.appendChild(b);
+  }
+}
+
+/* ------------------------------------------------------------ sheet view */
+let navSeq = 0;
+async function openSheet(f, s, cell=null, opts={}){
+  if(!s) s = firstSheet(f);
+  const seq = ++navSeq;
+  if(state.view!=='sheet') setView('sheet');
+  let payload, flow;
+  try{
+    [payload, flow] = await Promise.all([
+      api(`/api/sheet?f=${encodeURIComponent(f)}&s=${encodeURIComponent(s)}`),
+      api(`/api/flow?f=${encodeURIComponent(f)}&s=${encodeURIComponent(s)}`).catch(()=>({deps:{},dep_cells:[],dependents:[]}))
+    ]);
+  }catch(e){ if(seq===navSeq) toast('این شیت باز نشد: '+s); return; }
+  if(seq !== navSeq) return;            // a newer click already won
+  state.file=f; state.sheet=s; state.cell=cell; state.sel=cell;
+  state.payload = payload; state.flow = flow;
+  drawFiles(); drawSheets(); drawCrumbs();
+  renderGrid();
+  renderInspector(cell);
+  if(cell) focusCell(cell);
+  if(opts.tour===false){} else if(!state.tour) window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cleanArea(a){
+  const m = /\$?([A-Z]+\$?\d+):\$?([A-Z]+\$?\d+)/.exec(String(a).replace(/\$/g,''));
+  return m ? m[1]+':'+m[2] : String(a).replace(/'/g,'');
+}
+function drawCrumbs(){
+  const f = state.meta.files.find(f=>f.name===state.file);
+  const g = state.payload.grid;
+  $('#crumbs').innerHTML =
+    `<b>${esc(f.label)}</b> <span class="tag">${esc(f.name)}</span>` +
+    `<span>›</span> <b>${esc(state.sheet)}</b>` +
+    `<span class="tag">${g.rows} × ${g.cols}</span>` +
+    (g.print ? `<span class="tag">چاپ ${esc(cleanArea(g.print))}</span>` : '') +
+    (g.state!=='visible' ? `<span class="tag">مخفی</span>` : '') +
+    `<span class="grow"></span>` +
+    `<label class="toggle"><input type="checkbox" id="fxToggle" ${state.showFormulas?'checked':''}> نمایش فرمول‌ها</label>`;
+  $('#fxToggle').onchange = e => { state.showFormulas = e.target.checked; renderGrid(); };
+}
+
+function mergeMap(){
+  const start = new Map(), skip = new Set(), spans = new Map();
+  for(const m of state.payload.grid.merges){
+    const [a,b] = m.split(':');
+    const p1 = splitRef(a.replace(/\$/g,'')), p2 = splitRef(b.replace(/\$/g,''));
+    if(!p1||!p2) continue;
+    const key = p1.r+':'+p1.c;
+    const capR = state.payload.grid.cap_rows, capC = state.payload.grid.cap_cols;
+    if(p1.r > capR || p1.c > capC) continue;
+    const endR = Math.min(p2.r, capR), endC = Math.min(p2.c, capC);
+    start.set(key,[endR-p1.r+1, endC-p1.c+1]);
+    for(let r=p1.r;r<=endR;r++) for(let c=p1.c;c<=endC;c++){
+      if(r===p1.r&&c===p1.c) continue;
+      skip.add(r+':'+c);
+    }
+  }
+  return {start, skip};
+}
+
+function renderGrid(){
+  const g = state.payload.grid, styles = state.payload.styles || [];
+  const capR = g.cap_rows, capC = g.cap_cols;
+  const {start, skip} = mergeMap();
+  const links = new Map((state.payload.links||[]).map(l=>[l.cell,l]));
+  const hiddenRows = new Set(g.hidden_rows||[]);
+  const hiddenCols = new Set(g.hidden_cols||[]);
+  const table = $('#grid');
+  table.setAttribute('dir', g.rtl ? 'rtl' : 'ltr');
+  let html = '<colgroup><col style="width:38px">';
+  for(let c=1;c<=capC;c++){
+    const L = colLetter(c);
+    let w = g.widths[L];
+    const px = w ? Math.min(280, Math.max(42, Math.round(w*7.4+6))) : 78;
+    html += `<col style="width:${px}px">`;
+  }
+  html += '</colgroup><thead><tr><th class="rowh corner"></th>';
+  for(let c=1;c<=capC;c++){
+    const L=colLetter(c);
+    html += `<th class="colh${hiddenCols.has(L)?' hidcol':''}">${L}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+  for(let r=1;r<=capR;r++){
+    const h = g.heights[String(r)];
+    const hpx = h ? Math.min(220, Math.max(16, Math.round(h*1.34))) : 20;
+    html += `<tr style="height:${hpx}px" class="${hiddenRows.has(r)?'hid':''}">`;
+    html += `<th class="rowh">${r}</th>`;
+    for(let c=1;c<=capC;c++){
+      const key = r+':'+c;
+      if(skip.has(key)) continue;
+      const ref = colLetter(c)+r;
+      const cell = g.cells[ref];
+      const span = start.get(key);
+      const spanAttr = span ? ` rowspan="${span[0]}" colspan="${span[1]}"` : '';
+      if(!cell){ html += `<td class="c"${spanAttr}></td>`; continue; }
+      const [txt, st] = cell;
+      const s = styles[st] || [null,null,0,11,'right',0,0];
+      const [bg,fg,bold,sz,align,wrap,bd] = s;
+      const formula = g.formulas[ref];
+      let out = txt;
+      let cls = 'c';
+      if(formula){ cls += ' f'; out = state.showFormulas ? formula : 'ƒ'; }
+      if(cell[2]!==null && cell[2]!==undefined && links.has(ref)) cls += ' lnk';
+      if(state.sel===ref) cls += ' sel';
+      if(hiddenCols.has(colLetter(c))) cls += ' hidcol';
+      const stl = [];
+      if(bg) stl.push(`background:${bg}`);
+      stl.push(`color:${fg||'#2B2A26'}`);
+      if(bold) stl.push('font-weight:700');
+      stl.push(`font-size:${Math.max(9,Math.min(18,sz*1.15)).toFixed(1)}px`);
+      stl.push(`text-align:${align==='center'?'center':align==='left'?'left':'right'}`);
+      if(!wrap) stl.push('white-space:nowrap;text-overflow:ellipsis');
+      if(bd) stl.push('border:1px solid #E8E1D2');
+      const isNum = /^[\d٬,\-()٪%.\s]+$/.test(out) && out.trim() !== '';
+      if(isNum) cls += ' num';
+      const title = (formula ? formula : txt);
+      const link = links.get(ref);
+      const dataLink = link ? ` data-link="1"` : '';
+      html += `<td class="${cls}"${spanAttr} style="${stl.join(';')}" data-ref="${ref}"
+        data-sheet="${esc(state.sheet)}" title="${esc(String(title).slice(0,300))}"${dataLink}>${esc(out)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  table.innerHTML = html;
+  table.onclick = e => {
+    const td = e.target.closest('td.c'); if(!td) return;
+    const ref = td.dataset.ref;
+    if(td.dataset.link) return handleLink(ref);
+    state.sel = ref; state.cell = ref;
+    $$('td.c.sel', table).forEach(x=>x.classList.remove('sel'));
+    td.classList.add('sel');
+    renderInspector(ref);
+  };
+  if(!Object.keys(g.cells||{}).length){
+    $('#capNote').innerHTML = 'این شیت در پنجرهٔ نمایش خالی است؛ دادهٔ آن معمولاً از لینک‌های Sync می‌آید.';
+    return;
+  }
+  $('#capNote').innerHTML = g.big
+    ? `این شیت <b>${g.rows.toLocaleString('fa')}</b> ردیف دارد؛ نمایشگر ${g.cap_rows} ردیف اول و ${g.cap_cols} ستون اول را نشان می‌دهد. فایل اصلی کامل است.`
+    : `شیت کامل است (${g.rows} ردیف × ${g.cols} ستون). سلول‌های زردکادر با کلیک بررسی می‌شوند؛ سلول‌های آبی لینک دارند.`;
+}
+
+function focusCell(ref){
+  const td = $(`td.c[data-ref="${ref}"]`);
+  if(!td){ toast('این سلول بیرون از پنجرهٔ نمایش است؛ خودِ فایل اکسل آن را دارد.'); return; }
+  td.scrollIntoView({block:'center', inline:'center', behavior:'smooth'});
+  td.classList.remove('pulse'); void td.offsetWidth; td.classList.add('pulse');
+  state.sel = ref;
+  $$('td.c.sel').forEach(x=>x.classList.remove('sel')); td.classList.add('sel');
+}
+
+/* ------------------------------------------------------------ links */
+async function handleLink(ref){
+  const link = (state.payload.links||[]).find(l=>l.cell===ref);
+  if(!link){ toast('این سلول لینک ندارد'); return; }
+  await followLink(link);
+}
+
+async function followLink(link){
+  let file = state.file, sheet = null, cell = null;
+  if(link.kind === 'file'){
+    file = link.target.split('#')[0];
+    const loc = link.loc || (link.target.includes('#') ? link.target.split('#')[1] : '');
+    if(loc.includes('!')){ sheet = loc.split('!')[0].replace(/'/g,''); cell = loc.split('!')[1].replace(/\$/g,''); }
+  } else if(link.kind === 'sheet'){
+    const loc = link.loc || '';
+    if(loc.includes('!')){ sheet = loc.split('!')[0].replace(/'/g,''); cell = loc.split('!')[1].replace(/\$/g,''); }
+  }
+  if(!sheet) sheet = firstSheet(file) || 'Home';
+  toast(`پرش لینک: ${file} › ${sheet}${cell?' › '+cell:''}`, 2600);
+  await openSheet(file, sheet, cell);
+}
+
+/* ------------------------------------------------------------ inspector */
+function refsOf(formula, named){
+  const out = [];
+  const re = /(?:'([^'!]+)'|([A-Za-z_\u0600-\u06FF][\w\u0600-\u06FF]*))!(\$?[A-Z]{1,3}\$?\d+)?/g;
+  let m;
+  while((m = re.exec(formula))){
+    const s = m[1] || m[2];
+    if(!s) continue;
+    const cell = (m[3]||'').replace(/\$/g,'');
+    if(!out.some(o=>o.sheet===s)) out.push({sheet:s, name:null, cell});
+  }
+  for(const name of Object.keys(named||{})){
+    if(new RegExp('\\b'+name+'\\b').test(formula) && !out.some(o=>o.name===name)){
+      const tgt = String(named[name]||'');
+      const mm = /\$?([A-Z]+\$?\d+)/.exec(tgt);
+      out.push({sheet: tgt.split('!')[0].replace(/'/g,''), name,
+                cell: mm ? mm[1].replace(/\$/g,'') : null, range: tgt});
+    }
+  }
+  return out;
+}
+
+function renderInspector(ref){
+  const g = state.payload.grid;
+  const box = $('#inspBody');
+  const f = state.meta.files.find(f=>f.name===state.file);
+  if(!ref){
+    box.innerHTML = `<h3>بازرس سلول</h3><p class="empty">روی هر سلول کلیک کنید تا فرمول، مقدار و مقصدش را ببینید.</p>
+      <div class="sec"><h4>این شیت چه چیزی می‌خواند</h4>${depChips(g.deps)}</div>
+      <div class="sec"><h4>چه شیت‌هایی این شیت را می‌خوانند</h4>${depChips(
+        Object.fromEntries((state.flow.dependents||[]).map(d=>[d.from[1], d.count])))}</div>`;
+    return;
+  }
+  const cell = g.cells[ref];
+  const formula = g.formulas[ref];
+  const link = (state.payload.links||[]).find(l=>l.cell===ref);
+  const txt = cell ? cell[0] : '';
+  const refs = formula ? refsOf(formula, state.payload.named) : [];
+  let html = `<h3>بازرس سلول <span class="ref">${esc(ref)}</span></h3>`;
+  html += `<div class="sec" style="border-top:none;margin-top:0;padding-top:0">
+    <h4>مقدار</h4><div class="val">${esc(txt) || '<span class="empty">خالی</span>'}</div></div>`;
+  if(formula){
+    html += `<div class="sec"><h4>فرمول</h4><div class="fxbox">${esc(formula)}</div></div>`;
+    html += `<div class="sec"><h4>می‌خواند از — روی هر کدام بزنید تا منبع باز شود</h4>${
+      refs.length ? refs.map(r=>`<span class="chip ${r.name?'file':''}" data-go="${esc(r.sheet)}" data-cell="${esc(r.cell||'')}" title="${esc(r.range||('به '+(r.cell||r.sheet)))}">${r.name?'🏷 '+esc(r.name)+' → ':''}${esc(r.sheet)}${r.cell?' · '+esc(r.cell):''}</span>`).join('')
+                  : '<span class="empty">فقط محاسبهٔ داخلی</span>'}</div>`;
+  } else {
+    html += `<div class="sec"><h4>فرمول</h4><span class="empty">مقدار ثابت / ورودی دستی</span></div>`;
+  }
+  if(link){
+    const dest = link.kind==='file'
+      ? `${link.target}${link.loc?' › '+link.loc:''}`
+      : (link.loc || 'همین فایل');
+    html += `<div class="sec"><h4>لینک</h4>
+      <div class="val" style="direction:ltr">${esc(dest)}</div>
+      <button class="rowbtn" style="margin-top:6px" id="goLink"><span class="w">پرش</span><span class="t">همان‌جایی که اکسل می‌رود</span></button></div>`;
+  }
+  html += `<div class="sec"><h4>این شیت می‌خواند از</h4>${depChips(g.deps)}</div>`;
+  html += `<div class="sec"><h4>این شیت را می‌خوانند</h4>${depChips(
+    Object.fromEntries((state.flow.dependents||[]).map(d=>[d.from[1], d.count])))}</div>`;
+  box.innerHTML = html;
+  const gl = $('#goLink'); if(gl) gl.onclick = ()=>followLink(link);
+  $$('#inspBody .chip[data-go]').forEach(ch=>{
+    ch.onclick = ()=>{
+      const s = ch.dataset.go, c = ch.dataset.cell || null;
+      if(state.payload.sheets.includes(s)) openSheet(state.file, s, c);
+      else toast(`شیت ${s} در فایل دیگری است`);
+    };
+  });
+}
+
+function depChips(deps){
+  const keys = Object.keys(deps||{});
+  if(!keys.length) return '<span class="empty">مستقل</span>';
+  return keys.sort((a,b)=>deps[b]-deps[a]).map(k=>
+    `<span class="chip" data-go="${esc(k)}">${esc(k)} <b style="font-size:10px;color:#4B7D6C">${deps[k]}</b></span>`).join('');
+}
+
+/* ------------------------------------------------------------ view switch */
+function setView(v){
+  state.view = v;
+  $$('nav.tabs button[data-view]').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
+  $('#view-sheet').classList.toggle('hide', v!=='sheet');
+  $('#view-map').classList.toggle('hide', v!=='map');
+  if(v==='map') renderMap();
+}
+$$('nav.tabs button[data-view]').forEach(b=> b.onclick = ()=> setView(b.dataset.view));
+
+/* ------------------------------------------------------------ map */
+async function loadEdges(){
+  if(state.edges) return state.edges;
+  const d = await api('/api/graph');
+  state.edges = d.edges; return state.edges;
+}
+
+function fileTotals(){
+  const t = new Map();
+  for(const f of state.meta.files) t.set(f.name, {name:f.name, label:f.label, out:0, in:0, outF:0, inF:0});
+  for(const e of state.edges||[]){
+    const a = t.get(e.from[0]), b = t.get(e.to[0]);
+    if(!a||!b) continue;
+    if(e.kind==='formula'||e.kind==='sheet'||e.kind==='sync'){ a.out += e.count; b.in += e.count; }
+    if(e.kind==='file'){ a.outF += e.count; b.inF += e.count; }
+  }
+  return t;
+}
+
+async function renderMap(){
+  const edges = await loadEdges();
+  const mode = state.mapMode;
+  const kinds = [];
+  if($('#kFormula').checked) kinds.push('formula');
+  if($('#kFile').checked) kinds.push('file');
+  if($('#kSheet').checked) kinds.push('sheet');
+  if($('#kSync').checked) kinds.push('sync');
+  const min = +$('#kMin').value;
+  const wrap = $('#svgwrap');
+  const W = Math.max(720, wrap.clientWidth || 900), H = 620;
+  let svg = `<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block">`;
+  svg += `<defs>
+    <marker id="ar-f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7FA99B"/></marker>
+    <marker id="ar-file" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C89B3C"/></marker>
+    <marker id="ar-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9AA6A0"/></marker>
+    <marker id="ar-sync" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C4623F"/></marker>
+  </defs>`;
+
+  if(mode === 'file'){
+    const files = state.meta.files;
+    const pos = {};
+    const cx = W/2, cy = H/2 - 6, R = Math.min(W,H)*0.34;
+    files.forEach((f,i)=>{
+      const a = -Math.PI/2 + i*2*Math.PI/files.length;
+      pos[f.name] = {x: cx + R*Math.cos(a), y: cy + R*Math.sin(a)};
+    });
+    // aggregate
+    const agg = new Map();
+    for(const e of edges){
+      if(!kinds.includes(e.kind)) continue;
+      if(e.from[0]===e.to[0]) continue;
+      const k = e.from[0]+'|'+e.to[0]+'|'+e.kind;
+      const cur = agg.get(k) || {a:e.from[0], b:e.to[0], kind:e.kind, count:0, samples:[], toSheet:e.to[1]};
+      cur.count += e.count;
+      if(e.samples && e.samples[0] && cur.samples.length<4) cur.samples.push(e.samples[0]);
+      agg.set(k, cur);
+    }
+    const list = [...agg.values()].filter(e=> e.count>=min);
+    const maxc = Math.max(1, ...list.map(e=>e.count));
+    for(const e of list){
+      const A = pos[e.a], B = pos[e.b]; if(!A||!B) continue;
+      const col = e.kind==='formula' ? '#7FA99B' : e.kind==='file' ? '#C89B3C' : e.kind==='sync' ? '#C4623F' : '#A9B3AD';
+      const dash = e.kind==='file' ? 'stroke-dasharray="7 5"' : e.kind==='sync' ? 'stroke-dasharray="2 4"' : '';
+      const wdt = 1 + 4*Math.sqrt(e.count/maxc);
+      const mx = (A.x+B.x)/2, my = (A.y+B.y)/2;
+      const ddx = (B.y-A.y), ddy = -(B.x-A.x), len = Math.hypot(ddx,ddy)||1;
+      const bend = Math.min(60, 18 + 40*Math.sqrt(e.count/maxc));
+      const cx1 = mx + ddx/len*bend, cy1 = my + ddy/len*bend;
+      const anim = $('#kFlow').checked && e.kind !== 'sheet' ? ' flow' : '';
+      svg += `<path d="M${A.x},${A.y} Q${cx1},${cy1} ${B.x},${B.y}" fill="none" stroke="${col}"
+        stroke-width="${wdt.toFixed(1)}" ${anim ? '' : dash} marker-end="url(#ar-${e.kind==='formula'?'f':e.kind==='file'?'file':e.kind==='sync'?'sync':'s'})"
+        opacity=".55" class="medge${anim}" data-a="${e.a}" data-b="${e.b}" data-kind="${e.kind}" style="cursor:pointer">
+        <title>${esc(e.a)} → ${esc(e.b)} · ${e.count} ارجاع</title></path>`;
+    }
+    for(const f of files){
+      const p = pos[f.name];
+      const t = fileTotals().get(f.name);
+      const r = 26 + Math.min(14, Math.sqrt(t.in+t.out)/9);
+      svg += `<g class="mnode" data-file="${f.name}">
+        <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="#fff" stroke="${f.name===state.file?'#C89B3C':'#14453D'}" stroke-width="${f.name===state.file?3:1.6}"/>
+        <text x="${p.x}" y="${p.y-1}" text-anchor="middle" font-size="11" font-weight="700" fill="#14453D">${esc(f.label)}</text>
+        <text x="${p.x}" y="${p.y+13}" text-anchor="middle" font-size="9" fill="#8C8677" direction="ltr">${esc(f.name.replace('.xlsx',''))}</text>
+        <text x="${p.x}" y="${p.y+r+14}" text-anchor="middle" font-size="9.5" fill="#C4623F">${t.in}← · →${t.out}</text>
+      </g>`;
+    }
+    svg += `<text x="${W/2}" y="24" text-anchor="middle" font-size="11.5" fill="#8C8677">
+      هر فایل به همهٔ ۸ فایل دیگر لینک نسبی دارد (کارت‌های Home و نوار «فایل‌های همراه»)؛ خطوط ارجاع فرمول، جریان دادهٔ واقعی است</text>`;
+  } else {
+    // sheet level
+    const nodes = [];
+    const files = state.meta.files;
+    for(const f of files) for(const s of f.sheets) nodes.push({file:f.name, sheet:s.name, label:f.label});
+    const byFile = new Map(files.map(f=>[f.name, []]));
+    for(const n of nodes) byFile.get(n.file).push(n);
+    const pos = new Map();
+    const cx = W/2, cy = H/2, R = Math.min(W,H)*0.33;
+    files.forEach((f,i)=>{
+      const a = -Math.PI/2 + i*2*Math.PI/files.length;
+      const fx = cx + R*Math.cos(a), fy = cy + R*Math.sin(a);
+      const list = byFile.get(f.name);
+      list.forEach((n,j)=>{
+        const rr = 14 + Math.sqrt(j)*20;
+        const aa = a + j*0.9;
+        pos.set(n.file+'|'+n.sheet, {x: fx + rr*Math.cos(aa), y: fy + rr*Math.sin(aa)});
+      });
+      pos.set(f.name+'|__file', {x: fx, y: fy});
+    });
+    const agg = new Map();
+    for(const e of edges){
+      if(!kinds.includes(e.kind)) continue;
+      if(!e.from[1] || !e.to[1]) continue;
+      if(e.from[0]===e.to[0] && e.from[1]===e.to[1]) continue;
+      const k = e.from.join('|')+'|'+e.to.join('|')+'|'+e.kind;
+      const cur = agg.get(k) || {a:e.from, b:e.to, kind:e.kind, count:0};
+      cur.count += e.count; agg.set(k, cur);
+    }
+    const list = [...agg.values()].filter(e=>e.count>=min);
+    const maxc = Math.max(1, ...list.map(e=>e.count));
+    for(const e of list){
+      const A = pos.get(e.a.join('|')), B = pos.get(e.b.join('|'));
+      if(!A||!B) continue;
+      const same = e.a[0]===e.b[0];
+      const col = same ? '#7FA99B' : (e.kind==='file' ? '#C89B3C' : '#C4623F');
+      const anim2 = $('#kFlow').checked && !same ? ' flow' : '';
+      svg += `<path d="M${A.x},${A.y} Q${(A.x+B.x)/2},${(A.y+B.y)/2 - 20} ${B.x},${B.y}" fill="none"
+        class="${anim2.trim()}" stroke="${col}" stroke-width="${(0.6+2.6*Math.sqrt(e.count/maxc)).toFixed(1)}" opacity="${same?0.45:0.30}">
+        <title>${esc(e.a[1])} → ${esc(e.b[1])} · ${e.count}</title></path>`;
+    }
+    for(const f of files){
+      const fp = pos.get(f.name+'|__file');
+      svg += `<text x="${fp.x}" y="${fp.y-30}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#C89B3C">${esc(f.label)}</text>`;
+      for(const n of byFile.get(f.name)){
+        const p = pos.get(n.file+'|'+n.sheet);
+        const active = n.file===state.file && n.sheet===state.sheet;
+        svg += `<circle class="mnode" data-file="${n.file}" data-sheet="${n.sheet}" cx="${p.x}" cy="${p.y}" r="${active?5.5:3.6}"
+          fill="${active?'#C89B3C':(n.file===state.file?'#14453D':'#7FA99B')}" stroke="#fff" stroke-width=".8">
+          <title>${esc(n.file)} › ${esc(n.sheet)}</title></circle>`;
+      }
+    }
+  }
+  svg += '</svg>';
+  wrap.innerHTML = svg;
+  $('#mapHint').textContent = mode==='file'
+    ? `${(state.edges||[]).length} ارتباط ثبت‌شده · روی خط کلیک کنید تا سلول‌هایش را ببینید`
+    : `۹۴ شیت · دایره‌های بزرگ‌تر = ارجاع بیشتر`;
+
+  $$('.mnode', wrap).forEach(n=>{
+    n.onclick = ()=>{
+      const f = n.dataset.file, s = n.dataset.sheet || firstSheet(f);
+      openSheet(f, s); setView('sheet');
+    };
+  });
+  $$('.medge', wrap).forEach(p=>{
+    p.onclick = ()=> showEdgeInfo(p.dataset.a, p.dataset.b, p.dataset.kind);
+  });
+  $('#mapinfo').innerHTML = fileTable();
+}
+
+function fileTable(){
+  const t = fileTotals();
+  const rows = [...t.values()].sort((a,b)=>b.in-a.in).map(r=>`
+    <tr><td><b>${esc(r.label)}</b> <span style="color:var(--muted);font-family:Tahoma;font-size:10px">${esc(r.name)}</span></td>
+    <td>${r.in}</td><td>${r.out}</td><td>${r.inF} / ${r.outF}</td>
+    <td><span style="display:inline-block;width:${Math.min(160, r.in*2)}px" class="bar"></span></td></tr>`).join('');
+  return `<h3 style="margin:0 0 8px;font-size:13px;color:var(--forest)">خلاصهٔ ارتباط هر فایل</h3>
+    <table class="tbl"><thead><tr><th>فایل</th><th>ارجاع ورودی</th><th>ارجاع خروجی</th><th>لینک فایل (ورودی/خروجی)</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p class="empty" style="margin:8px 2px 0">«ارجاع ورودی» یعنی چند شیت دیگر این فایل را می‌خوانند؛ «لینک فایل» یعنی کارت‌هایی که با یک کلیک از این فایل به فایل دیگر می‌روند.</p>`;
+}
+
+function showEdgeInfo(aFile, bFile, kind){
+  const list = (state.edges||[]).filter(e=>e.from[0]===aFile && e.to[0]===bFile && (!kind || e.kind===kind));
+  const max = 12;
+  let html = `<h3 style="margin:0 0 8px;font-size:13px;color:var(--forest)">
+    ${esc(bFile)} → ${esc(aFile)} · ${list.reduce((s,e)=>s+e.count,0)} ارجاع</h3>`;
+  const rows = [];
+  for(const e of list) for(const s of (e.samples||[])){
+    if(rows.length>=max) break;
+    const parts = String(s.cell||'').split('!');
+    rows.push(`<button class="rowbtn" data-f="${e.from[0]}" data-s="${s.cell?e.from[1]:''}" data-c="${parts[1]||''}">
+      <span class="w">${esc(s.cell||'')}</span><span class="t">${esc((s.formula||s.text||'').slice(0,90))}</span></button>`);
+  }
+  html += rows.join('') || '<p class="empty">نمونه‌ای ثبت نشده</p>';
+  html += `<button class="rowbtn" style="margin-top:8px" id="mapBack"><span class="w">بازگشت</span>
+    <span class="t">خلاصهٔ ارتباط همهٔ فایل‌ها</span></button>`;
+  $('#mapinfo').innerHTML = html;
+  const back = $('#mapBack');
+  if(back) back.onclick = ()=>{ $('#mapinfo').innerHTML = fileTable(); };
+  $$('#mapinfo .rowbtn').forEach(b=> b.onclick = ()=>{
+    openSheet(b.dataset.f, b.dataset.s || 'Home', b.dataset.c || null); setView('sheet');
+  });
+}
+
+$('#mapmode').onclick = e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  state.mapMode = b.dataset.mode;
+  $$('#mapmode button').forEach(x=>x.classList.toggle('on', x===b));
+  renderMap();
+};
+['kFormula','kFile','kSheet','kSync','kMin','kFlow'].forEach(id=> $('#'+id).onchange = ()=> renderMap());
+
+/* ------------------------------------------------------------ search */
+let qTimer=null;
+$('#q').oninput = e=>{
+  clearTimeout(qTimer);
+  const q = e.target.value.trim();
+  if(!q){ $('#hits').classList.remove('on'); return; }
+  qTimer = setTimeout(async ()=>{
+    const d = await api('/api/find?q='+encodeURIComponent(q));
+    const hits = d.hits || [];
+    const box = $('#hits');
+    box.innerHTML = hits.length ? hits.slice(0,60).map(h=>`
+      <div class="hit" data-f="${esc(h.file)}" data-s="${esc(h.sheet)}" data-c="${esc(h.cell)}">
+        <span class="where">${esc(h.sheet)}!${esc(h.cell)}</span>
+        <span class="what">${h.formula?'ƒ ':''}${esc(h.text)}</span></div>`).join('')
+      : '<div class="hit"><span class="what">چیزی پیدا نشد</span></div>';
+    box.classList.add('on');
+    $$('.hit[data-f]', box).forEach(el=> el.onclick = ()=>{
+      box.classList.remove('on');
+      openSheet(el.dataset.f, el.dataset.s, el.dataset.c);
+    });
+  }, 260);
+};
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.searchbox')) $('#hits').classList.remove('on');
+});
+
+/* ------------------------------------------------------------ live tour */
+const TOUR = [
+  {f:'00_Master.xlsx', s:'Sync', c:'A1', t:'۰۰_Master › Sync — قلب دادهٔ ثابت',
+   p:'حساب‌ها، عملیات باسکول، سبدها، بانک‌ها و پارامترها یک‌جا در همین شیت‌اند. هیچ فایل دیگری داده را نگه نمی‌دارد؛ فقط کپی می‌گیرد.'},
+  {f:'00_Master.xlsx', s:'Acc', c:'A9', t:'۰۰_Master › Acc — کد حساب‌ها',
+   p:'ستون کد (C001، SL001، BN02 …) هرگز عوض نمی‌شود؛ فقط نام قابل ویرایش است. همهٔ فایل‌ها با همین کدها حرف می‌زنند.'},
+  {f:'01_Entry.xlsx', s:'Sync', c:'B10', t:'۰۱_Entry › Sync — کپی قفل‌شدهٔ مادر',
+   p:'این همان دادهٔ مادر است که در فایل ثبت کپی شده و قفل است. نام‌هایی مثل AcctTbl و OpTbl به همین شیت اشاره می‌کنند، پس همهٔ فرمول‌ها یک منبع دارند.'},
+  {f:'01_Entry.xlsx', s:'Scale', c:'G11', t:'۰۱_Entry › Scale — ردیف توزین',
+   p:'کد طرف حساب را که انتخاب کنید، نام حساب با VLOOKUP از Sync خوانده می‌شود. ستون‌های بدهکار/بستانکار همین‌جا ساخته می‌شوند.'},
+  {f:'01_Entry.xlsx', s:'Book', c:'A11', t:'۰۱_Entry › Book — دفتر روزنامه',
+   p:'ردیف باسکول این‌جا دو سطر می‌شود: بدهکار و بستانکار. هیچ سندی دستی زده نمی‌شود؛ همه‌چیز از روی همان ردیف می‌آید.'},
+  {f:'01_Entry.xlsx', s:'Bill', c:'L11', t:'۰۱_Entry › Bill — فاکتور از همان بارها',
+   p:'شمارندهٔ پنهان Scale!BB ردیف‌های بار همان کد را شماره می‌گذارد و فاکتور با MATCH آن‌ها را می‌آورد. کادر «وضعیت فاکتور» می‌گوید چند ردیف پیدا شد.'},
+  {f:'01_Entry.xlsx', s:'Home', c:'D34', t:'۰۱_Entry › Home — پرش با لینک نسبی',
+   p:'این کارت‌ها با مسیر نسبی به فایل کنارشان می‌روند. روی «بانک» کلیک کنید؛ همین حالا همان پرش را می‌بینید.'},
+  {f:'02_Bank.xlsx', s:'Txn', c:'A12', t:'۰۲_Bank › Txn — تراکنش‌های بانکی',
+   p:'همین لحظه از فایل ثبت به فایل بانک پریدیم — بدون مسیر مطلق، فقط با نام فایل. «بانک مبدا» این‌جا بانک شرکت است و کد طرف حساب، حساب همان شخص.'},
+  {f:'03_Report.xlsx', s:'LBRep', c:'A1', t:'۰۳_Report › LBRep — گزارش بارفروشان',
+   p:'گزارش‌ها هم کپی Sync خودشان را می‌خوانند؛ برای همین وقتی فایل مادر عوض شود، با یک تازه‌سازی همه‌جا هم‌خوان می‌شود.'},
+  {f:'04_Inv.xlsx', s:'Inv', c:'A9', t:'۰۴_Inv › Inv — دفتر فاکتورها',
+   p:'همان لینک‌ها از این فایل هم به بقیه می‌روند. کل مجموعه یک حلقهٔ بسته است: مادر ← Sync هر فایل ← شیت‌ها ← لینک‌های نسبی.'}
+];
+let tour = null, tourTimer = null;
+
+function tourStart(){
+  tour = {i:0, playing:true};
+  $('#tourbar').classList.add('on');
+  $('#tourBtn').classList.add('on');
+  $('#tPlay').textContent = 'توقف';
+  tourGo(0);
+  startAuto();
+}
+function tourStop(){
+  tour = null; clearInterval(tourTimer); tourTimer=null;
+  $('#tourbar').classList.remove('on'); $('#tourBtn').classList.remove('on');
+}
+async function tourGo(i){
+  if(!tour) return;
+  tour.i = Math.max(0, Math.min(TOUR.length-1, i));
+  const st = TOUR[tour.i];
+  $('#tTitle').textContent = st.t;
+  $('#tText').textContent = st.p;
+  $('#tStep').textContent = `${tour.i+1} / ${TOUR.length}`;
+  $('#tProg').style.width = ((tour.i+1)/TOUR.length*100)+'%';
+  await openSheet(st.f, st.s, st.c, {tour:true});
+  setView('sheet');
+  setTimeout(()=>{ if(state.cell) focusCell(state.cell); }, 260);
+}
+$('#tourBtn').onclick = ()=> tour ? tourStop() : tourStart();
+$('#tStop').onclick = tourStop;
+$('#tNext').onclick = ()=>{ if(tour) tourGo(tour.i+1); };
+$('#tPrev').onclick = ()=>{ if(tour) tourGo(tour.i-1); };
+$('#tPlay').onclick = ()=>{
+  if(!tour) return;
+  tour.playing = !tour.playing;
+  $('#tPlay').textContent = tour.playing ? 'توقف' : 'پخش';
+  if(tour.playing) startAuto(); else clearInterval(tourTimer);
+};
+function startAuto(){
+  clearInterval(tourTimer);
+  tourTimer = setInterval(()=>{
+    if(!tour || !tour.playing) return;
+    if(tour.i >= TOUR.length-1){ tour.playing=false; $('#tPlay').textContent='پخش'; clearInterval(tourTimer); return; }
+    tourGo(tour.i+1);
+  }, 5200);
+}
+/* autoplay is started inside tourStart */
+
+boot().catch(e=>{
+  document.body.insertAdjacentHTML('beforeend', `<div class="toast on">خطا در بارگذاری: ${esc(e.message)}</div>`);
+});
+</script>
+</body>
+</html>
