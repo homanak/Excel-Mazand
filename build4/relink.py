@@ -54,6 +54,35 @@ def _fix_links(wb):
     return fixed
 
 
+def _fit_home(ws):
+    """Wrap the long single-row banners so nothing is clipped at the edges."""
+    from openpyxl.utils import get_column_letter
+
+    changed = 0
+    for rng in list(ws.merged_cells.ranges):
+        if rng.min_row != rng.max_row or rng.max_col - rng.min_col < 2:
+            continue
+        cell = ws.cell(rng.min_row, rng.min_col)
+        if not isinstance(cell.value, str) or not cell.value.strip():
+            continue
+        units = sum((ws.column_dimensions[get_column_letter(ci)].width or 9.0)
+                    for ci in range(rng.min_col, rng.max_col + 1))
+        size = cell.font.sz or 10.0
+        cap = max(12, int(units * 1.22 * (11.0 / size)))      # chars on one line
+        if len(cell.value) <= cap:
+            continue
+        al = cell.alignment
+        cell.alignment = Alignment(horizontal=al.horizontal, vertical=al.vertical or "center",
+                                   wrap_text=True, indent=al.indent)
+        lines = min(4, -(-len(cell.value) // cap))
+        need = 14.5 * lines * (size / 10.0) + 6
+        cur = ws.row_dimensions[rng.min_row].height or 15
+        if need > cur:
+            ws.row_dimensions[rng.min_row].height = round(need, 2)
+        changed += 1
+    return changed
+
+
 def _nav(wb, name):
     fixed = _fix_links(wb)
     if "Home" not in wb.sheetnames:
@@ -74,19 +103,21 @@ def _nav(wb, name):
     head.alignment = Alignment(horizontal="right", vertical="center")
     ws.row_dimensions[r].height = 24
     others = [f for f in FILES if f != name]
-    for i, f in enumerate(others):
-        c = ws.cell(r + 1 + i // 5, 1 + (i % 5) * 2)
+    for i, f in enumerate(others):                      # three cards per row
+        rr, c0 = r + 1 + i // 3, 1 + (i % 3) * 3
+        try:
+            ws.merge_cells(start_row=rr, start_column=c0, end_row=rr, end_column=c0 + 2)
+        except Exception:
+            pass
+        c = ws.cell(rr, c0)
         c.value = f"{LABEL.get(f, f)}  {f[:-5]}"
         c.hyperlink = f
         c.font = Font(name=FA, size=9, bold=True, color=FOREST)
         c.fill = PatternFill("solid", fgColor=MINT)
         c.border = Border(top=THIN, bottom=THIN, left=THIN, right=THIN)
-        c.alignment = Alignment(horizontal="center", vertical="center")
-    if others:
-        ws.row_dimensions[r + 1].height = 22
-        if len(others) > 5:
-            ws.row_dimensions[r + 2].height = 22
-    last = r + 1 + (0 if len(others) <= 5 else 1)
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        ws.row_dimensions[rr].height = 22
+    last = r + max(1, -(-len(others) // 3))
     area = ws.print_area
     if area:
         m = re.search(r"\$?([A-Z]+)\$?(\d+):\$?([A-Z]+)\$?(\d+)", str(area))
@@ -94,6 +125,7 @@ def _nav(wb, name):
             ws.print_area = f"A1:{m.group(3)}{last}"
     else:
         ws.print_area = f"A1:J{last}"
+    _fit_home(ws)
     return fixed
 
 

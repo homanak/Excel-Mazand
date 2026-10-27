@@ -273,6 +273,8 @@ def entry(path, master_path):
     ledger(wb)
     counters(wb)
     book_counter(wb)
+    import entry4                      # help text for the new sheets, appended last
+    entry4.help_v6(wb)
     wb.calculation.fullCalcOnLoad = True
     wb.save(path)
     wb.close()

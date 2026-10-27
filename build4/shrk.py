@@ -999,9 +999,11 @@ def entry_home(wb):
                       "در باسکول: «خرید شراکتی (ورود)» و «فروش شراکتی (خروج)»")
     L.st(c, name=FA, size=10.5, bold=True, color=L.WHITE, bg=L.TERRA, border=L.TERRA, h="right")
     ws.row_dimensions[r].height = 24
+    ws.merge_cells(f"A{r + 1}:C{r + 1}")
     cell = ws.cell(r + 1, 1, "حساب شرکا  Shrk")
     cell.hyperlink = "#'Shrk'!A1"
-    L.st(cell, name=FA, size=10, bold=True, color=L.FOREST, bg=L.MINT, border=L.LINE)
+    L.st(cell, name=FA, size=10, bold=True, color=L.FOREST, bg=L.MINT, border=L.LINE, h="center")
+    ws.row_dimensions[r + 1].height = 20
     ws.print_area = f"A1:J{r + 1}"
     return r
 

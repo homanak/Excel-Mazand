@@ -439,23 +439,117 @@ def extend_help(wb):
 
 
 def home_links(wb):
+    """Home: the «sheet cards» + the file cards, all inside the print area."""
     ws = wb["Home"]
+    # a narrow A + default columns clipped the Persian labels; give every card
+    # column a real width so nothing is cut at the cell boundary
+    ws.column_dimensions["A"].width = 15
+    for col in "BCDEFGHIJKLMNO":
+        ws.column_dimensions[col].width = 11.5
+
     r = ws.max_row + 2
     ws.merge_cells(f"A{r}:J{r}")
     c = ws.cell(r, 1, "   شیت‌های تازه: Inv (دفتر فاکتورها)  ·  Bill (فاکتور خودکار فروش)  ·  "
                       "BillBuy (فاکتور خودکار خرید از باغدار)  ·  Print (فاکتور چاپی A4)  ·  "
-                      "GRep (گزارش گروه‌های حساب) — روی نام شیت کلیک کنید.")
+                      "GRep (گزارش گروه‌های حساب)  ·  Stmt (صورت‌حساب چاپی)  ·  "
+                      "Ledger (دفتر حساب) — روی هر کارت کلیک کنید.")
     L.st(c, name=L.FA, size=10.5, color=L.WHITE, bg=L.GOLD, border=L.GOLD, h="right")
     ws.row_dimensions[r].height = 24
-    links = [("Inv", "دفتر فاکتورها", "B"), ("Bill", "فاکتور خودکار فروش", "C"),
-             ("BillBuy", "فاکتور خودکار خرید", "D"),
-             ("Print", "فاکتور چاپی", "F"), ("GRep", "گزارش گروه‌ها", "H")]
-    for i, (sheet, label, _) in enumerate(links):
-        cell = ws.cell(r + 1, 1 + i * 3)
+
+    cards = [("Inv", "دفتر فاکتورها"), ("Bill", "فاکتور خودکار فروش"),
+             ("BillBuy", "فاکتور خودکار خرید"),
+             ("Print", "فاکتور چاپی"), ("GRep", "گزارش گروه‌ها"),
+             ("Shrk", "حساب شرکا"),
+             ("Stmt", "صورت‌حساب چاپی"), ("Ledger", "دفتر حساب یک حساب")]
+    for i, (sheet, label) in enumerate(cards):
+        row = r + 1 + i // 3
+        col0 = 1 + (i % 3) * 3                     # A / D / G  (3 columns each)
+        ws.merge_cells(start_row=row, start_column=col0, end_row=row, end_column=col0 + 2)
+        cell = ws.cell(row, col0)
         cell.value = label
         cell.hyperlink = f"#'{sheet}'!A1"
-        L.st(cell, name=L.FA, size=10, bold=True, color=L.FOREST, bg=L.MINT, border=L.LINE)
-    ws.print_area = f"A1:J{r + 1}"
+        for k in range(col0, col0 + 3):
+            L.st(ws.cell(row, k), name=L.FA, size=10, bold=True, color=L.FOREST,
+                 bg=L.MINT, border=L.LINE)
+        cell.hyperlink = f"#'{sheet}'!A1"
+        ws.row_dimensions[row].height = 22
+    # the partner card that was already on the sheet as one loose cell
+    if not any(str(m) == "A46:C46" for m in ws.merged_cells.ranges):
+        try:
+            ws.merge_cells("A46:C46")
+        except Exception:
+            pass
+
+    last = r + 1 + (len(cards) - 1) // 3
+    ws.print_area = f"A1:J{last}"
+    return r
+
+
+def help_v6(wb):
+    """A Help section for the sheets and blocks added after the v04 seed."""
+    ws = wb["Help"]
+
+    # ---- the table of contents must list sections ۱۱ and ۱۲ too ------------
+    from copy import copy
+    from openpyxl.worksheet.hyperlink import Hyperlink
+
+    sec11 = None
+    for row in range(20, ws.max_row + 1):        # skip the table of contents itself
+        v = ws.cell(row, 1).value
+        if isinstance(v, str) and v.strip().startswith("۱۱"):
+            sec11 = row
+            break
+    sec12 = ws.max_row + 2
+    free = [row for row in range(8, 20) if ws.cell(row, 2).value in (None, "")]
+    for (num, title, target), row in zip(
+            [("۱۱", "شراکت — خرید و فروش مشترک با شریک", sec11),
+             ("۱۲", "شیت‌ها و ابزارهای ویرایش ۶", sec12)], free):
+        if not target:
+            continue
+        if f"B{row}:J{row}" not in {str(m) for m in ws.merged_cells.ranges}:
+            ws.merge_cells(f"B{row}:J{row}")
+        a, b = ws.cell(row, 1, num), ws.cell(row, 2, "  " + title)
+        a._style = copy(ws["A17"]._style)
+        b._style = copy(ws["B17"]._style)
+        b.hyperlink = Hyperlink(ref=b.coordinate, location=f"Help!B{target}")
+        ws.row_dimensions[row].height = 21
+
+    r = ws.max_row + 2
+    blocks = [
+        ("۱۲   شیت‌ها و ابزارهای ویرایش ۶", None),
+        ("•  Stmt — صورت‌حساب چاپی: کد حساب را در کادر زرد C9 بزنید؛ بالا ۳۰ رسید آخر باسکول "
+         "و پایین در کادری جدا ۸ دریافتی/پرداخت آخر می‌آید، با جمع‌ها و مانده حساب. یک برگ A4.", None),
+        ("•  Ledger — دفتر حساب: همان کد را بزنید؛ همه ردیف‌های دفتر روزنامه آن حساب "
+         "به ترتیب تاریخ، با بدهکار/بستانکار و مانده روان (تا ۱۵۰ ردیف).", None),
+        ("•  Pay، ستون‌های AH تا AP (بیرون از چاپ): کارمزد بانکی، حساب کارمزد پیش‌فرض X022، "
+         "سه تقسیم مبلغ و ستون کنترل ✓/⚠. مبلغی که به طرف حساب می‌رسد = مبلغ − تقسیم‌ها؛ "
+         "کارمزد هم به حساب X022 می‌رود، پس مانده طرف حساب پاک می‌ماند.", None),
+        ("•  Pay، ستون AV — کد تراکنش: هر پرداخت/دریافت خودکار کد PY-0001 می‌گیرد؛ "
+         "در دفتر روزنامه همان کد در ستون سند دیده می‌شود.", None),
+        ("•  فاکتور Bill / BillBuy: کد طرف حساب در کادر زرد O2. کادر «وضعیت فاکتور» در N12 می‌گوید "
+         "«کد خالی است»، «باری برای این کد پیدا نشد» یا «✓ چند ردیف بار» — اگر جدول خالی بود "
+         "اول همین کادر را بخوانید. مبلغ خالص طرف حساب (Pay!AT) در بخش واریزی/پرداختی می‌آید.", None),
+        ("•  مبلغ نهایی فاکتور: ردیف آخر هر فاکتور «مبلغ نهایی فاکتور — خالص پس از ضایعات» است؛ "
+         "همان عددی که با جمع واریزی‌ها مقایسه می‌شود.", None),
+        ("•  02_Bank، شیت Txn: «بانک مبدا» = بانک شرکت که تراکنش روی آن حساب می‌شود (حساب مبدا "
+         "جدا لازم نیست) و «کد طرف حساب» اگر پر شود، حساب همان شخص بدهکار/بستانکار می‌شود.", None),
+        ("•  03_Report: شیت LBRep گزارش بارفروشان (یک ردیف جمع برای هر نفر + ریز بارها با تاریخ‌های "
+         "زیر هم) و شیت GrwTot جمع باغداران با ستون «مبلغ صورت‌حساب» و ستون کنترل.", None),
+        ("•  نام‌ها تازه‌اند: فایل مادر همین 00_Master است (نام قدیمی آن دیگر وجود ندارد) و فایل ثبت 01_Entry است.", None),
+    ]
+    for text, _ in blocks:
+        ws.merge_cells(f"A{r}:J{r}")
+        c = ws.cell(r, 1, "   " + text if not text[:2].isdigit() else text)
+        if text[:2].isdigit():
+            L.st(c, name=L.FA, size=11.5, bold=True, color=L.WHITE, bg=L.FOREST,
+                 border=L.FOREST, h="right")
+            ws.row_dimensions[r].height = 26
+        else:
+            L.st(c, name=L.FA, size=9.5, color=L.INK, bg=L.CREAM, border=L.LINE,
+                 h="right", wrap=True)
+            ws.row_dimensions[r].height = 34
+        r += 1
+    ws.print_area = f"A1:J{r - 1}"
     return r
 
 

@@ -506,7 +506,7 @@ def build(path, mode="sale", index=None, company=None, seals=None):
         C.st(ws[val_ref], name=L.FA, size=9.5, bold=True, color=L.FOREST, bg=bg,
              border=L.GOLD, h="center")
 
-    ws["N12"] = "راهنما"
+    ws["N12"] = "وضعیت فاکتور"
     C.st(ws["N12"], name=L.FA, size=9, bold=True, color=L.WHITE, bg=L.FOREST,
          border=L.FOREST, h="center")
     ws.merge_cells("N13:O22")
