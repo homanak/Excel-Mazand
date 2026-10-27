@@ -136,13 +136,13 @@ PAGE = """<!doctype html>
     <a id="liveGo" href="#">باز کردن نمایشگر زنده ↗</a>
   </div>
   <script>
-    (function(){
+    (function(){{
       var a = document.getElementById('liveGo');
       if(!a) return;
       a.href = /^\d+-/.test(location.hostname)
         ? location.protocol + '//' + location.hostname.replace(/^\d+-/, '8080-') + '/'
         : location.protocol + '//' + location.hostname + ':8080/';
-    })();
+    }})();
   </script>
 
   <h2>دانلود فایل‌به‌فایل</h2>

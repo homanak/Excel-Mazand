@@ -105,7 +105,8 @@ def build(folder):
         def style_of(cell):
             f = cell.font
             a = cell.alignment
-            bg = _color(cell.fill) if cell.fill is not None and cell.fill.fill_type == "solid" else None
+            bg = (_color(cell.fill.fgColor)
+                  if cell.fill is not None and cell.fill.fill_type == "solid" else None)
             fg = _color(f.color) if f.color is not None else None
             bd = bool(cell.border and cell.border.left and cell.border.left.style)
             al = a.horizontal or ("right" if rtl_book[ws.title] else "left")
