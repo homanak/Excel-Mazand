@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 INDEX = os.path.join(HERE, "_explore", "index.json.gz")
+SEED = os.path.join(HERE, "explore_index.json.gz")     # committed fallback
 UI = os.path.join(HERE, "explore_ui.html")
 
 DATA = None
@@ -23,11 +24,25 @@ META = None
 EDGES = None
 
 
+def index_path():
+    if os.path.exists(INDEX):
+        return INDEX
+    if os.path.exists(SEED):
+        return SEED
+    return INDEX
+
+
 def load():
     global DATA, META, EDGES
-    if not os.path.exists(INDEX):
+    path = index_path()
+    if not os.path.exists(path):
+        print(f"missing index: {INDEX}  → building it now (needs openpyxl) …", flush=True)
+        import explore_index
+        explore_index.main(["explore_index.py"])
+    path = index_path()
+    if not os.path.exists(path):
         sys.exit(f"missing index: {INDEX}  → run build4/explore_index.py first")
-    with gzip.open(INDEX, "rt", encoding="utf-8") as fh:
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
         DATA = json.load(fh)
     EDGES = DATA["edges"]
     files = []
@@ -156,7 +171,7 @@ def main():
     ap.add_argument("--host", default="0.0.0.0")
     args = ap.parse_args()
     meta = load()
-    print(f"index {INDEX}  ({os.path.getsize(INDEX) / 1e6:.1f} MB)")
+    print(f"index {index_path()}  ({os.path.getsize(index_path()) / 1e6:.1f} MB)")
     print(f"{meta['totals']}  built {meta['generated']}")
     print(f"serving on http://{args.host}:{args.port}/")
     ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()

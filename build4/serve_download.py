@@ -133,17 +133,8 @@ PAGE = """<!doctype html>
       <span>نمایشگر زندهٔ ۹ فایل: شیت‌ها را مثل اکسل می‌بینید، روی لینک‌ها کلیک می‌کنید و
         نقشهٔ ارتباط فایل‌ها (Sync، ارجاع فرمول، لینک نسبی) را زنده می‌بینید. نیازی به اکسل نیست.</span>
     </div>
-    <a id="liveGo" href="#">باز کردن نمایشگر زنده ↗</a>
+    <a href="/">باز کردن نمایشگر زنده ↗</a>
   </div>
-  <script>
-    (function(){{
-      var a = document.getElementById('liveGo');
-      if(!a) return;
-      a.href = /^\d+-/.test(location.hostname)
-        ? location.protocol + '//' + location.hostname.replace(/^\d+-/, '8080-') + '/'
-        : location.protocol + '//' + location.hostname + ':8080/';
-    }})();
-  </script>
 
   <h2>دانلود فایل‌به‌فایل</h2>
   <div class="grid">
