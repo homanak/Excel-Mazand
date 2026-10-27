@@ -163,6 +163,7 @@ path.flow{stroke-dasharray:1 7; animation:dashmove 1.1s linear infinite}
 .tbl th,.tbl td{padding:5px 8px; border-bottom:1px solid #F0EADC; text-align:right}
 .tbl th{color:var(--muted); font-weight:700; font-size:10.5px}
 .tbl tr:hover td{background:var(--cream)}
+.warnmark{color:var(--terra); font-weight:700; cursor:help}
 .bar{height:7px; border-radius:4px; background:linear-gradient(90deg,var(--sage),var(--forest)); display:inline-block; vertical-align:middle}
 /* ---------- tour ---------- */
 #tourbar{position:fixed; inset-inline:0; bottom:0; z-index:60; display:none; padding:10px 20px 14px;
@@ -629,10 +630,13 @@ async function loadEdges(){
 
 function fileTotals(){
   const t = new Map();
-  for(const f of state.meta.files) t.set(f.name, {name:f.name, label:f.label, out:0, in:0, outF:0, inF:0});
+  for(const f of state.meta.files)
+    t.set(f.name, {name:f.name, label:f.label, out:0, in:0, outF:0, inF:0, internal:0, sheets:0});
   for(const e of state.edges||[]){
     const a = t.get(e.from[0]), b = t.get(e.to[0]);
     if(!a||!b) continue;
+    const same = e.from[0]===e.to[0];
+    if(same){ if(e.kind==='formula') a.internal += e.count; continue; }
     if(e.kind==='formula'||e.kind==='sheet'||e.kind==='sync'){ a.out += e.count; b.in += e.count; }
     if(e.kind==='file'){ a.outF += e.count; b.inF += e.count; }
   }
@@ -698,11 +702,16 @@ async function renderMap(){
       const p = pos[f.name];
       const t = fileTotals().get(f.name);
       const r = 26 + Math.min(14, Math.sqrt(t.in+t.out)/9);
+      if(t.internal && $('#kFormula').checked){
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="${r+7}" fill="none" stroke="#7FA99B" stroke-width="2"
+          stroke-dasharray="4 4" opacity=".55"><title>${t.internal} ارجاع فرمول داخل همین فایل</title></circle>`;
+      }
       svg += `<g class="mnode" data-file="${f.name}">
         <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="#fff" stroke="${f.name===state.file?'#C89B3C':'#14453D'}" stroke-width="${f.name===state.file?3:1.6}"/>
         <text x="${p.x}" y="${p.y-1}" text-anchor="middle" font-size="11" font-weight="700" fill="#14453D">${esc(f.label)}</text>
         <text x="${p.x}" y="${p.y+13}" text-anchor="middle" font-size="9" fill="#8C8677" direction="ltr">${esc(f.name.replace('.xlsx',''))}</text>
         <text x="${p.x}" y="${p.y+r+14}" text-anchor="middle" font-size="9.5" fill="#C4623F">${t.in}← · →${t.out}</text>
+        <text x="${p.x}" y="${p.y+r+26}" text-anchor="middle" font-size="9" fill="#7FA99B">داخلی ${t.internal}</text>
       </g>`;
     }
     svg += `<text x="${W/2}" y="24" text-anchor="middle" font-size="11.5" fill="#8C8677">
@@ -780,14 +789,20 @@ async function renderMap(){
 
 function fileTable(){
   const t = fileTotals();
-  const rows = [...t.values()].sort((a,b)=>b.in-a.in).map(r=>`
+  const maxI = Math.max(1, ...[...t.values()].map(r=>r.internal));
+  const hasSync = f => (state.meta.files.find(x=>x.name===f)?.sheets||[]).some(s=>s.name==='Sync');
+  const rows = [...t.values()].sort((a,b)=>b.internal-a.internal).map(r=>`
     <tr><td><b>${esc(r.label)}</b> <span style="color:var(--muted);font-family:Tahoma;font-size:10px">${esc(r.name)}</span></td>
-    <td>${r.in}</td><td>${r.out}</td><td>${r.inF} / ${r.outF}</td>
-    <td><span style="display:inline-block;width:${Math.min(160, r.in*2)}px" class="bar"></span></td></tr>`).join('');
+    <td>${r.internal} <span style="display:inline-block;width:${Math.round(90*r.internal/maxI)}px" class="bar"></span></td>
+    <td>${hasSync(r.name) ? '✓ کپی مادر' : '—'}</td>
+    <td>${r.outF || '<span class="warnmark" title="این فایل شیت Home ندارد، پس خودش لینکی به فایل‌های دیگر نمی‌دهد">⚠ ۰</span>'}</td>
+    <td>${r.inF}</td></tr>`).join('');
   return `<h3 style="margin:0 0 8px;font-size:13px;color:var(--forest)">خلاصهٔ ارتباط هر فایل</h3>
-    <table class="tbl"><thead><tr><th>فایل</th><th>ارجاع ورودی</th><th>ارجاع خروجی</th><th>لینک فایل (ورودی/خروجی)</th><th></th></tr></thead>
+    <table class="tbl"><thead><tr><th>فایل</th><th>ارجاع فرمول داخل فایل</th><th>شیت Sync</th>
+    <th>لینک خروجی به فایل‌ها</th><th>لینک ورودی از فایل‌ها</th></tr></thead>
     <tbody>${rows}</tbody></table>
-    <p class="empty" style="margin:8px 2px 0">«ارجاع ورودی» یعنی چند شیت دیگر این فایل را می‌خوانند؛ «لینک فایل» یعنی کارت‌هایی که با یک کلیک از این فایل به فایل دیگر می‌روند.</p>`;
+    <p class="empty" style="margin:8px 2px 0">هر فایل دادهٔ مادر را در شیت <b>Sync</b> خودش دارد (یک منبع، بدون ارجاع زندهٔ بین‌فایلی) و با
+    لینک نسبی به هشت فایل دیگر می‌رود؛ برای همین جابه‌جایی پوشه، لینک‌ها را نمی‌شکند.</p>`;
 }
 
 function showEdgeInfo(aFile, bFile, kind){
