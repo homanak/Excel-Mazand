@@ -214,6 +214,21 @@ def build_zip_if_missing():
     os.replace(tmp, ZIP)
 
 
+def ensure_download_page():
+    """A reset workspace loses download_v04/ → rebuild page + zip on the spot."""
+    page = os.path.join(DL, "index.html")
+    if os.path.exists(page) and os.path.exists(ZIP):
+        return page
+    try:
+        import serve_download as SD
+        os.makedirs(DL, exist_ok=True)
+        SD.build_zip()
+        return SD.build_page()
+    except Exception as exc:                                   # pragma: no cover
+        print("could not build the download page:", exc)
+        return page
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8080)
@@ -221,6 +236,7 @@ def main():
     args = ap.parse_args()
     meta = EX.load()
     build_zip_if_missing()
+    ensure_download_page()
     ip = EX.index_path()
     print(f"explorer index : {ip} ({os.path.getsize(ip) / 1e6:.1f} MB)")
     print(f"totals         : {meta['totals']}  built {meta['generated']}")
